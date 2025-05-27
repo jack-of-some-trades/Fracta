@@ -25,14 +25,14 @@ logger = logging.getLogger("fracta_log")
 
 
 @dataclass(slots=True)
-class Symbol:
+class Ticker:
     "Dataclass interface used to send Symbol Search information to the Symbol Search Menu"
 
-    ticker: str
+    symbol: str
     name: Optional[str] = None
     source: Optional[str] = None
-    sec_type: Optional[str] = None
     exchange: Optional[str] = None
+    asset_class: Optional[str] = None
     attrs: dict = field(default_factory=dict)
 
     @classmethod
@@ -46,15 +46,15 @@ class Symbol:
         args = {**obj} if obj is not None else {}
         args = kwargs | args  # Merge Preferring keys from the 'obj' dictionary
 
-        if "symbol" in args and "ticker" not in args:
-            args["ticker"] = args.pop("symbol")
+        if "ticker" in args and "symbol" not in args:
+            args["symbol"] = args.pop("ticker")
 
-        if "ticker" not in args:
+        if "symbol" not in args:
             logger.error(
                 'Symbol.from_dict() must be given a dictionary with a "ticker" or "symbol" key. Given: %s',
                 obj,
             )
-            return cls("LWPC")
+            return cls("FRACTA")
 
         params = signature(cls).parameters
 
@@ -68,7 +68,7 @@ class Symbol:
 
     def get(self, attr: str, default: Any) -> Any | None:
         "Safely get an attribute from the symbol return None if not found"
-        if attr in {"ticker", "name", "source", "sec_type", "exchange", "attrs"}:
+        if attr in {"symbol", "name", "source", "asset_class", "exchange", "attrs"}:
             return getattr(self, attr)
         else:
             return self.attrs.get(attr, default)
@@ -80,10 +80,10 @@ class Symbol:
     def __eq__(self, other: Self) -> bool:
         # Not checking name field since a timeseries set can be unique defined by below criteria
         return (
-            self.ticker.lower() == other.ticker.lower()
+            self.symbol.lower() == other.symbol.lower()
             and _str_compare(self.source, other.source)
             and _str_compare(self.exchange, other.exchange)
-            and _str_compare(self.sec_type, other.sec_type)
+            and _str_compare(self.asset_class, other.asset_class)
         )
 
 

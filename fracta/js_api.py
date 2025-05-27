@@ -86,14 +86,14 @@ class js_api:
         except ValueError:
             logger.warning("Couldn't Change Series_Type, '%s' isn't a valid series", series_type)
 
-    def data_request(self, c_id: str, f_id: str, symbol: dict[str, str], tf_str: str):
+    def data_request(self, c_id: str, f_id: str, ticker: dict[str, str], tf_str: str):
         try:
             self.rtn_queue.put(
                 (
                     PY_CMD.TIMESERIES_REQUEST,
                     c_id,
                     f_id,
-                    orm.Symbol.from_dict(symbol),
+                    orm.Ticker.from_dict(ticker),
                     orm.TF.fromStr(tf_str),
                 )
             )
@@ -103,12 +103,12 @@ class js_api:
     def symbol_search(
         self,
         symbol: str,
-        types: list[str],
-        brokers: list[str],
+        sources: list[str],
         exchanges: list[str],
+        asset_classes: list[str],
         confirmed: bool,
     ):
-        self.rtn_queue.put((PY_CMD.SYMBOL_SEARCH, symbol, confirmed, types, brokers, exchanges))
+        self.rtn_queue.put((PY_CMD.SYMBOL_SEARCH, symbol, confirmed, sources, exchanges, asset_classes))
 
     def set_indicator_options(self, container_id: str, frame_id: str, indicator_id: str, obj: dict):
         self.rtn_queue.put((PY_CMD.SET_INDICATOR_OPTS, container_id, frame_id, indicator_id, obj))

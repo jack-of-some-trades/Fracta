@@ -30,11 +30,6 @@ ALPACA_API_KEYS: Dict[str, Any] = {
     "secret_key": os.getenv("ALPACA_API_SECRET_KEY"),
 }
 
-_asset_rename_map = {
-    "class": "sec_type",
-    "symbol": "ticker",
-}
-
 
 class AlpacaAPI:
     """
@@ -87,20 +82,20 @@ class AlpacaAPI:
         client = TradingClient(**self.api_keys, paper=True)
         # Why does this not have an Async Version? IT TAKES LIKE 3 DAMN SECONDS.
         assets_json = client.get_all_assets()
-        self._assets = DataFrame(assets_json).rename(columns=_asset_rename_map).set_index("id")
+        self._assets = DataFrame(assets_json).rename(columns={"class": "asset_class"}).set_index("id")
         # Drop All OTC since they aren't Tradable
         self._assets = self._assets[self._assets.exchange != "OTC"]
         return self._assets
 
     def setup_window(self, window: fta.Window):
         "Set a Pychart Window's Event Callbacks & Filters for use with Alpaca"
-        window.events.data_request += self.get_hist
+        window.events.data_request += self.get_series
         window.events.symbol_search += self.search_symbols
         window.events.open_socket += self.open_socket
         window.events.close_socket += self.close_socket
 
-        window.set_search_filters("security_type", ["Crypto", "Equity"])
-        window.set_search_filters("data_broker", ["Alpaca"])
+        window.set_search_filters("asset_class", ["Crypto", "Equity"])
+        window.set_search_filters("source", ["Alpaca"])
         window.set_search_filters("exchange", [])
 
     async def shutdown(self):
@@ -113,28 +108,29 @@ class AlpacaAPI:
         self.crypto_stream.stop()
         await asyncio.gather(self.stock_task, self.crypto_task)
 
-    def search_symbols(self, ticker: str, **_) -> list[fta.Symbol]:
+    def search_symbols(self, symbol: str, **_) -> list[fta.Ticker]:
         "Search the Active symbols on Alpaca. This ignores OTC Symbols"
+        ### Currently this ignores the additional filters that are passed in the kwargs
         # Search Tickers
-        matches = self.assets[self.assets["ticker"].str.contains(ticker, case=False)]
+        matches = self.assets[self.assets["symbol"].str.contains(symbol, case=False)]
         if len(matches) > 0:
             return symbols_from_df(matches, source="alpaca")
 
         # Search Names if ticker search failed to return anything
-        matches = self.assets[self.assets["name"].str.contains(ticker, case=False)]
+        matches = self.assets[self.assets["name"].str.contains(symbol, case=False)]
         return symbols_from_df(matches, source="alpaca")
 
-    def get_hist(
+    def get_series(
         self,
-        symbol: fta.Symbol,
+        ticker: fta.Ticker,
         timeframe: fta.TF,
         start: Optional[str | datetime] = None,
         end: Optional[str | datetime] = None,
         limit: Optional[int] = 50_000,
     ) -> Optional[DataFrame]:
-        "Return timeseries data for the given symbol"
+        "Return timeseries data for the given ticker"
         args = {
-            "symbol_or_symbols": symbol.ticker,
+            "symbol_or_symbols": ticker.symbol,
             "timeframe": _format_time(timeframe),
         }
         if limit is not None:
@@ -152,41 +148,41 @@ class AlpacaAPI:
         # this is painfully slow when requesting large sets of data.
 
         try:
-            if symbol.sec_type == AssetClass.CRYPTO:
+            if ticker.asset_class == AssetClass.CRYPTO:
                 rsp: Dict[str, Any] = self.crypto_client.get_crypto_bars(CryptoBarsRequest(**args))  # type: ignore
-                return DataFrame(rsp[symbol.ticker]) if symbol in rsp else None
+                return DataFrame(rsp[ticker.symbol]) if ticker in rsp else None
             else:
                 rsp: Dict[str, Any] = self.stock_client.get_stock_bars(  # type: ignore
                     StockBarsRequest(**args, adjustment=Adjustment.ALL)
                 )
-                return DataFrame(rsp[symbol.ticker]) if symbol in rsp else None
+                return DataFrame(rsp[ticker.symbol]) if ticker.symbol in rsp else None
         except APIError as e:
             log.error("get_bars() APIError: %s", e)
             return None
 
-    def open_socket(self, symbol: fta.Symbol, series: fta.indicators.Series):
+    def open_socket(self, ticker: fta.Ticker, series: fta.indicators.Series):
         "Open Websocket Datastream if a channel is available"
-        log.info("%s Requested Socket open of %s.", series.js_id, symbol.ticker)
+        log.info("%s Requested Socket open of %s.", series.js_id, ticker.symbol)
 
-        if symbol.ticker not in self.assets["ticker"].unique():
-            log.info("Symbol %s does not exist on Alpaca", symbol.ticker)
+        if ticker.symbol not in self.assets["symbol"].unique():
+            log.info("Symbol %s does not exist on Alpaca", ticker.symbol)
             return
 
         # Handle case where another series indicator is already listening to the given symbol
-        if symbol.ticker in self.open_sockets:
-            listeners = self.open_sockets[symbol.ticker]
+        if ticker.symbol in self.open_sockets:
+            listeners = self.open_sockets[ticker.symbol]
             if series not in listeners:
                 listeners.append(series)
-                self.series_ticker_map[id(series)] = symbol.ticker
-            log.info("Series Added as a listener to %s", symbol.ticker)
+                self.series_ticker_map[id(series)] = ticker.symbol
+            log.info("Series Added as a listener to %s", ticker.symbol)
             return
 
-        if symbol.sec_type == AssetClass.CRYPTO and not self.crypto_task.cancelled():
-            self.crypto_stream.subscribe_bars(self._socket_handler, symbol.ticker)
+        if ticker.asset_class == AssetClass.CRYPTO and not self.crypto_task.cancelled():
+            self.crypto_stream.subscribe_bars(self._socket_handler, ticker.symbol)
         elif not self.stock_task.cancelled():
-            self.stock_stream.subscribe_bars(self._socket_handler, symbol.ticker)
-        self.open_sockets[symbol.ticker] = [series]
-        self.series_ticker_map[id(series)] = symbol.ticker
+            self.stock_stream.subscribe_bars(self._socket_handler, ticker.symbol)
+        self.open_sockets[ticker.symbol] = [series]
+        self.series_ticker_map[id(series)] = ticker.symbol
 
     def close_socket(self, series: fta.indicators.Series):
         "Close a Websocket Datastream that's no longer needed"
@@ -199,7 +195,7 @@ class AlpacaAPI:
         if len(self.open_sockets[ticker]) == 0:
             log.info("No More Listeners on %s. Closed down socket", ticker)
 
-            if series.symbol.sec_type == AssetClass.CRYPTO:
+            if series.ticker.asset_class == AssetClass.CRYPTO:
                 self.crypto_stream.unsubscribe_bars(ticker)
             else:
                 self.stock_stream.unsubscribe_bars(ticker)
@@ -230,9 +226,9 @@ class AlpacaAPI:
             series.update_data(update_obj, accumulate=True)
 
 
-def symbols_from_df(matches: DataFrame, **defaults) -> list[fta.Symbol]:
+def symbols_from_df(matches: DataFrame, **defaults) -> list[fta.Ticker]:
     "Generate a list of Symbols from a dataframe of the relevant data"
-    generator = (fta.Symbol.from_dict(obj, **defaults) for obj in matches.to_dict(orient="records"))
+    generator = (fta.Ticker.from_dict(obj, **defaults) for obj in matches.to_dict(orient="records"))
     # Return the Given Max number of entries from a generator expression
     return list(islice(generator, MAX_SYMBOL_SEARCH_RETURN))
 

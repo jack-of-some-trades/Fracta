@@ -165,8 +165,8 @@ def set_window_timeframes(opts: dict) -> str:
     return f"api.update_timeframe_topbar_opts({dump(opts)});"
 
 
-def update_symbol_search(symbols: list) -> str:
-    return f"api.populate_search_symbols({dump(symbols)});"
+def update_symbol_search(tickers: list) -> str:
+    return f"api.populate_search_tickers({dump(tickers)});"
 
 
 def update_symbol_search_bubbles(category: str, opts: list[str]) -> str:
@@ -211,8 +211,8 @@ def set_frame_series_type(frame_id: str, series: Enum) -> str:
     return f"{frame_id}.set_series_type({series});"
 
 
-def set_frame_symbol(frame_id: str, symbol: object) -> str:
-    return f"{frame_id}.set_symbol({dump(symbol)});"
+def set_frame_symbol(frame_id: str, ticker: object) -> str:
+    return f"{frame_id}.set_ticker({dump(ticker)});"
 
 
 def set_frame_timeframe(frame_id: str, timeframe: TF) -> str:

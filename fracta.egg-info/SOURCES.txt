@@ -21,6 +21,7 @@ fracta.egg-info/requires.txt
 fracta.egg-info/top_level.txt
 fracta/broker_apis/__init__.py
 fracta/broker_apis/alpaca_api.py
+fracta/broker_apis/psyscale_api.py
 fracta/frontend/favicon.ico
 fracta/frontend/index.html
 fracta/frontend/svg-defs.svg

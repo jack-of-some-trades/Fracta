@@ -1,6 +1,6 @@
 import { Accessor, createSignal, JSX, Setter } from "solid-js"
 import { update_tab_func } from "./container"
-import { symbol_item, tf } from "./types"
+import { tf, ticker } from "./types"
 
 export abstract class frame {
     type:string = 'abstract'
@@ -15,7 +15,7 @@ export abstract class frame {
     setTarget: Setter<boolean>
 
     timeframe: tf | undefined = undefined
-    symbol: symbol_item | undefined = undefined
+    ticker: ticker | undefined = undefined
 
     constructor(id: string, tab_update_func: update_tab_func) {
         this.id = id

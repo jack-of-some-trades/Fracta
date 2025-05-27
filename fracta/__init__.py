@@ -46,7 +46,7 @@ __all__ = (
     "TF",
     "Color",
     "JS_Color",
-    "Symbol",
+    "Ticker",
     "Indicator",
     "IndicatorOptions",
     #

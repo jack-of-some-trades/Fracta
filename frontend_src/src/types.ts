@@ -2,9 +2,9 @@ import { Series_Type } from "./charting_frame/series-plugins/series-base";
 
 // #region ---------------- Classes & Interfaces ---------------- //
 
-/* Represents information about a specific symbol */
-export interface symbol_item {
-    ticker: string
+/* Represents information about a specific Ticker */
+export interface ticker {
+    symbol: string
     name?: string
     broker?: string
     sec_type?: Series_Type
