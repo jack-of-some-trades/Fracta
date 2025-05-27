@@ -1,6 +1,5 @@
 "Simple Main Script to launch Fracta sourcing data from the Alpaca API"
 
-import sys
 import asyncio
 from dotenv import find_dotenv, load_dotenv
 
@@ -17,7 +16,7 @@ async def main():
     # All symbols are loaded at the start and for some reason that API never decided to make that an
     # Async request so here we wait.
 
-    window = fta.Window(log_level="INFO", debug=True, frameless=False, broker_api="psyscale")
+    window = fta.Window(log_level="INFO", debug=True, frameless=False, broker_api="alpaca")
 
     window.set_layout_favs(
         [
@@ -52,12 +51,11 @@ async def main():
         fta.indicators.SMA(sma20)
 
     await window.await_close()  # Useful to make Ctrl-C in the terminal kill the window.
+    # await alpaca_api.shutdown()
 
 
 if __name__ == "__main__":
     try:
-        if sys.platform == "win32":
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         asyncio.run(main())
     except KeyboardInterrupt:
         pass

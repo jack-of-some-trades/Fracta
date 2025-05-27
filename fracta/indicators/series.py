@@ -143,7 +143,7 @@ class Series(Indicator):
 
         self.opts = opts
         self.timeframe = None
-        self.ticker = Ticker("LWPC")
+        self.ticker = Ticker("FRACTA")
         self._bar_state: Optional[BarState] = None
 
         # Cached Volume colors w/ the appropriate opacity

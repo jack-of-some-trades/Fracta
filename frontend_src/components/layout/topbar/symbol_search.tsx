@@ -127,16 +127,16 @@ export function SymbolSearchMenu(props:search_menu_props){
         // Fetch all the filter information directly from the DOM. Easier than creating yet another Store
         const symbol = (search_menu.querySelector("input.search_input") as HTMLInputElement).value
         const exchanges = Array.from(
-            search_menu.querySelectorAll("#exchange > .bubble_item[active]"), 
+            search_menu.querySelectorAll("#exchange > .bubble_item[active]:not([id=any])"), 
             (node)=>node?.textContent??""
         )
         const sources = Array.from(
-            search_menu.querySelectorAll("#source > .bubble_item[active]"), 
+            search_menu.querySelectorAll("#source > .bubble_item[active]:not([id=any])"), 
             (node)=>node?.textContent??""
         )
         const asset_classes = Array.from(
-            search_menu.querySelectorAll("#asset_class > .bubble_item[active]"), 
-            (node)=>node?.textContent??""
+            search_menu.querySelectorAll("#asset_class > .bubble_item[active]:not([id=any])"), 
+            (node)=>(node?.textContent??"")
         )
         window.api.symbol_search(symbol, sources, exchanges, asset_classes, confirmed)
     }
@@ -210,7 +210,7 @@ export function SymbolSearchMenu(props:search_menu_props){
                 <table id="symbols_table">
                     <thead>
                         <tr class="symbol_list_item text">
-                            <th>Symbol</th><th>Name</th><th>Exchange</th><th>Type</th><th>Data Broker</th>
+                            <th>Symbol</th><th>Name</th><th>Exchange</th><th>Asset Class</th><th>Source</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -219,8 +219,8 @@ export function SymbolSearchMenu(props:search_menu_props){
                                 <td>{symbol.symbol}</td>
                                 <td>{symbol.name ?? "-"}</td>
                                 <td>{symbol.exchange ?? "-"}</td>
-                                <td>{symbol.sec_type ?? "-"}</td>
-                                <td>{symbol.broker ?? "-"}</td>
+                                <td>{symbol.asset_class ?? "-"}</td>
+                                <td>{symbol.source ?? "-"}</td>
                             </tr>
                         }</For>
                     </tbody>

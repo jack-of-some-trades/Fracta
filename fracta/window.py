@@ -21,7 +21,7 @@ from .py_cmd import WIN_CMD_ROLODEX
 from .js_api import PyWv, MpHooks, PyWebViewOptions
 
 log = logging.getLogger("fracta_log")
-APIs = Literal["alpaca"]
+APIs = Literal["psyscale", "alpaca"]
 
 
 # pylint: disable=missing-class-docstring, missing-function-docstring, import-outside-toplevel
@@ -108,6 +108,11 @@ class Window:
             from fracta.broker_apis.alpaca_api import AlpacaAPI
 
             self.broker_api = AlpacaAPI()
+            self.broker_api.setup_window(self)
+        elif broker_api == "psyscale":
+            from fracta.broker_apis.psyscale_api import PsyscaleAPI
+
+            self.broker_api = PsyscaleAPI()
             self.broker_api.setup_window(self)
         else:
             log.warning('Unknown Broker API: "%s"', broker_api)

@@ -6,9 +6,9 @@ import { Series_Type } from "./charting_frame/series-plugins/series-base";
 export interface ticker {
     symbol: string
     name?: string
-    broker?: string
-    sec_type?: Series_Type
+    source?: string
     exchange?: string
+    asset_class?: Series_Type
 }
 
 const interval_list: interval[] = ["s", "m", "h", "D", "W", "M", "Y"]

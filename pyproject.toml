@@ -11,6 +11,7 @@ dependencies = [
     "dotenv>=0.9.9",
     "pandas>=2.2.2",
     "pandas-market-calendars>=4.6.0",
+    "psyscale>=0.1.1",
     "pywebview>=5.1",
 ]
 
