@@ -1,4 +1,3 @@
-import { Series_Type } from "./charting_frame/series-plugins/series-base";
 
 // #region ---------------- Classes & Interfaces ---------------- //
 
@@ -8,11 +7,12 @@ export interface ticker {
     name?: string
     source?: string
     exchange?: string
-    asset_class?: Series_Type
+    asset_class?: string
+    attrs?: Object
 }
 
 const interval_list: interval[] = ["s", "m", "h", "D", "W", "M", "Y"]
-const interval_val_map = { "s": 1, "m": 60, "h": 3600, "D": 86400, "W": 604800, "M": 18396000, "Y": 220752000, "E": 1 }
+const interval_val_map = { "s": 1, "m": 60, "h": 3600, "D": 86400, "W": 604800, "M": 2629743, "Y": 31556926, "E": -1 }
 export type interval = "s" | "m" | "h" | "D" | "W" | "M" | "Y" | "E"
 export const interval_map = { "s": "Second", "m": "Minute", "h": "Hour", "D": "Day", "W": "Week", "M": "Month", "Y": "Year", "E": "Error" }
 /**
@@ -52,7 +52,7 @@ export class tf {
             let mult = (val / interval_val_map[interval_list[i]])
             if (mult >= 1) {
                 //Highest Tf interval found
-                return new tf(mult, interval_list[i])
+                return new tf(Math.round(mult), interval_list[i])
             }
         }
 
