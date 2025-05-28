@@ -183,7 +183,12 @@ class Series_DF:
         self._pd_tf = determine_timedelta(pandas_df["time"])
         self._tf = TF.from_timedelta(self._pd_tf)
         self.calendar = CALENDARS.request_calendar(exchange, pandas_df["time"].iloc[0], pandas_df["time"].iloc[-1])
-        self.df = pandas_df.set_index("time")
+        # Drop Duplicate Timestamps & set the index to the time column
+        self.df = pandas_df[~pandas_df["time"].duplicated(keep="first")].set_index("time")
+
+        if "rth" in self.columns:
+            self.df["rth"] = self.df["rth"].astype("Int64")  # Ensure nullable int dtype
+
         self._mark_ext()
 
         # Data Type is used to simplify updating. Should be considered a constant
@@ -266,7 +271,7 @@ class Series_DF:
             missing_rth = self._dt_index[self.df["rth"].isna()]
             rth_col = CALENDARS.mark_session(self.calendar, missing_rth)
             if rth_col is not None:
-                self.df.loc[rth_col.index, "rth"] = rth_col
+                self.df.loc[rth_col.index, "rth"] = rth_col.to_numpy()
         else:
             # Calculate the Full Trading Hours Session
             rth_col = CALENDARS.mark_session(self.calendar, self._dt_index)
@@ -689,7 +694,10 @@ class Calendars:
         if mcal is None or calendar == "24/7":
             return None
 
-        return mcal.mark_session(self.schedule_cache[calendar], time_index, label_map=EXT_MAP, closed="left")
+        _ser = mcal.mark_session(self.schedule_cache[calendar], time_index, label_map=EXT_MAP, closed="left")
+        _ser.name = "rth"
+
+        return _ser
 
     def session_at_time(self, calendar: str, dt: pd.Timestamp) -> int | None:
         "Check what session the given timestamp is part of. Inherently closed ='left'"

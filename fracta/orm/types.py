@@ -33,7 +33,7 @@ class Ticker:
     source: Optional[str] = None
     exchange: Optional[str] = None
     asset_class: Optional[str] = None
-    attrs: dict = field(default_factory=dict)
+    attrs: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, obj: Optional[dict] = None, **kwargs) -> Self:
@@ -66,7 +66,12 @@ class Ticker:
 
         return cls(**{k: v for k, v in args.items() if k in params}, attrs=attrs)
 
-    def get(self, attr: str, default: Any) -> Any | None:
+    @property
+    def valid_attrs(self) -> set[str]:
+        "The set of all attrs keys that have a value that is not None."
+        return set((k for k, v in self.attrs.items() if v is not None))
+
+    def get(self, attr: str, default: Any = None) -> Any | None:
         "Safely get an attribute from the symbol return None if not found"
         if attr in {"symbol", "name", "source", "asset_class", "exchange", "attrs"}:
             return getattr(self, attr)
@@ -427,10 +432,10 @@ class TF:
                     raise ValueError("Hour multiplier must be in [1, 23].")
             case "D":
                 if amount > 6:
-                    raise ValueError("Hour multiplier must be in [1, 6].")
+                    raise ValueError("Day multiplier must be in [1, 6].")
             case "W":
-                if amount > 3:
-                    raise ValueError("Hour multiplier must be in [1, 3].")
+                if amount > 4:
+                    raise ValueError("Week multiplier must be in [1, 4].")
             case "M":
                 if amount not in (1, 2, 3, 6):
                     raise ValueError("Month units must be (1, 2, 3, 6)")

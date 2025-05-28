@@ -5,7 +5,7 @@ import asyncio
 import logging
 from typing import Optional
 from psyscale import PsyscaleAsync
-from psyscale.dev import sql, Op, AssetTbls
+from psyscale.dev import sql, Op, AssetTbls, AGGREGATE_ARGS, TICK_ARGS
 
 import pandas as pd
 from fracta import Window, Ticker, TF
@@ -13,6 +13,19 @@ from fracta import Window, Ticker, TF
 from .alpaca_api import AlpacaAPI
 
 log = logging.getLogger("fracta_log")
+
+STD_ARGS = AGGREGATE_ARGS | TICK_ARGS
+
+ALPACA_RENAME_MAP = {
+    "t": "dt",
+    "o": "open",
+    "h": "high",
+    "l": "low",
+    "c": "close",
+    "v": "volume",
+    "vw": "vwap",
+    "n": "ticks",
+}
 
 
 class PsyscaleAPI:
@@ -27,7 +40,7 @@ class PsyscaleAPI:
             )
 
         self.db = PsyscaleAsync()  # Init with env Variables
-        srcs = {v.lower for v in self.db.distinct_sources()}
+        srcs = {v.lower() for v in self.db.distinct_sources()}
 
         if "alpaca" in srcs:
             self.alpaca_api = AlpacaAPI()
@@ -67,4 +80,34 @@ class PsyscaleAPI:
         return [Ticker.from_dict(v) for v in rsp]
 
     def get_series(self, ticker: Ticker, timeframe: TF) -> Optional[pd.DataFrame]:
-        return None
+        "Get Timeseries Data Joining data from Stored Data & Live Data Sources"
+
+        if (pkey := ticker.get("pkey")) is None:
+            # This means a Requested Symbol must be at least known to the database. Since this
+            log.warning("Cannot Get Series data for ticker: %s. It lacks a Primary Key Attribute", ticker)
+            return None
+
+        stored_data, fetched_data, fetch_start = None, None, None
+        if ticker.get("store"):
+            mdata = self.db.inferred_metadata(pkey, timeframe.as_timedelta())
+            if mdata is not None:
+                fetch_start = mdata.end_date
+                stored_data = self.db.get_series(
+                    pkey,
+                    timeframe.as_timedelta(),
+                    rtn_args=STD_ARGS,
+                    mdata=mdata,
+                )
+
+        # ---- Fetch Source Data ----
+        if ticker.source is None:
+            return stored_data
+
+        if ticker.source.lower() == "alpaca":
+            fetched_data = self.alpaca_api.get_series(ticker, timeframe, start=fetch_start)
+            if fetched_data is not None:
+                fetched_data.rename(columns=ALPACA_RENAME_MAP, inplace=True)
+
+        # ---- Merge and Return ----
+        dfs = (stored_data, fetched_data)
+        return pd.concat(dfs) if any(df is not None for df in dfs) else None
