@@ -3,12 +3,12 @@
 import sys
 import asyncio
 import logging
-from typing import Optional
+from typing import Optional, Protocol
 from psyscale import PsyscaleAsync
 from psyscale.dev import sql, Op, AssetTbls, AGGREGATE_ARGS, TICK_ARGS
 
 import pandas as pd
-from fracta import Window, Ticker, TF
+import fracta as fta
 
 from .alpaca_api import AlpacaAPI
 
@@ -28,6 +28,13 @@ ALPACA_RENAME_MAP = {
 }
 
 
+class WebSocketInterface(Protocol):
+    "Protocol to Define WebSocket Owners"
+
+    def open_socket(self, ticker: fta.Ticker, series: fta.indicators.Series): ...
+    def close_socket(self, series: fta.indicators.Series): ...
+
+
 class PsyscaleAPI:
     "API to bridge Fracta Data Requests with a Psyscale Backend + Live Data Brokers"
 
@@ -45,31 +52,36 @@ class PsyscaleAPI:
         if "alpaca" in srcs:
             self.alpaca_api = AlpacaAPI()
 
+        # Dict of Series.js_id : Data Source managing the Open Socket
+        self._open_sockets: dict[str, WebSocketInterface] = {}
+
     async def shutdown(self):
         "Shutdown the Asyncio Workers"
         await self.db.close()
         if getattr(self, "alpaca_api", None) is not None:
             await self.alpaca_api.shutdown()
 
-    def setup_window(self, window: Window):
+    def setup_window(self, window: fta.Window):
         "Setup the window will appropriate search filters and event responders."
-        window.events.symbol_search += self.search_symbols
         window.events.data_request += self.get_series
+        window.events.symbol_search += self.search_symbols
+        window.events.open_socket += self.open_socket
+        window.events.close_socket += self.close_socket
 
         window.set_search_filters("source", self.db.distinct_sources())
         window.set_search_filters("exchange", self.db.distinct_exchanges())
         window.set_search_filters("asset_class", self.db.distinct_asset_classes())
 
-    def search_symbols(self, symbol: str, **filters) -> list[Ticker]:
+    def search_symbols(self, symbol: str, **filters) -> list[fta.Ticker]:
         "Search the Database's stored Symbols, returning matches as Ticker Objs"
         _filters = []
         # Manually form the filters for the Symbol search. Allows for use of any operator
-        if len(srcs := filters["sources"]) > 0:
-            _filters.append(sql.SQL("source = any({_vals})").format(_vals=srcs))
-        if len(srcs := filters["exchanges"]) > 0:
-            _filters.append(sql.SQL("exchange = any({_vals})").format(_vals=srcs))
-        if len(srcs := filters["asset_classes"]) > 0:
-            _filters.append(sql.SQL("asset_class = any({_vals})").format(_vals=srcs))
+        if len(flts := filters["sources"]) > 0:
+            _filters.append(sql.SQL("source = any({_vals})").format(_vals=flts))
+        if len(flts := filters["exchanges"]) > 0:
+            _filters.append(sql.SQL("exchange = any({_vals})").format(_vals=flts))
+        if len(flts := filters["asset_classes"]) > 0:
+            _filters.append(sql.SQL("asset_class = any({_vals})").format(_vals=flts))
 
         # Perform Similary match of symbol against both name + symbol columns
         rsp, _ = self.db.execute(
@@ -77,9 +89,9 @@ class PsyscaleAPI:
             dict_cursor=True,
         )
 
-        return [Ticker.from_dict(v) for v in rsp]
+        return [fta.Ticker.from_dict(v) for v in rsp]
 
-    def get_series(self, ticker: Ticker, timeframe: TF) -> Optional[pd.DataFrame]:
+    def get_series(self, ticker: fta.Ticker, timeframe: fta.TF) -> Optional[pd.DataFrame]:
         "Get Timeseries Data Joining data from Stored Data & Live Data Sources"
 
         if (pkey := ticker.get("pkey")) is None:
@@ -111,3 +123,20 @@ class PsyscaleAPI:
         # ---- Merge and Return ----
         dfs = (stored_data, fetched_data)
         return pd.concat(dfs) if any(df is not None for df in dfs) else None
+
+    def open_socket(self, ticker: fta.Ticker, series: fta.indicators.Series):
+        "Forward the Socket Request to the appropriate Data Source"
+        if ticker.source is None:
+            return
+
+        if ticker.source.lower() == "alpaca":
+            self._open_sockets[series.js_id] = self.alpaca_api
+            self.alpaca_api.open_socket(ticker, series)
+
+    def close_socket(self, series: fta.indicators.Series):
+        "Forward the Socket close Request to the appropriate Data Source"
+        if series.js_id not in self._open_sockets:
+            return
+
+        socket_manager = self._open_sockets.pop(series.js_id)
+        socket_manager.close_socket(series)

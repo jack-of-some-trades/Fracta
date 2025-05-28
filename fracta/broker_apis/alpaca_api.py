@@ -202,11 +202,11 @@ class AlpacaAPI:
             self.open_sockets.pop(ticker)
 
     async def _socket_handler(self, data):
-        listeners = self.open_sockets[data.get("S")]
+        listeners = self.open_sockets.get(data.get("S"), None)
 
         if listeners is None:
             log.warning(
-                "Recieved Data for a symbol (%s) that isnt being tracked.",
+                "Recieved Data for a symbol (%s) that isnt being tracked?",
                 data.get("S"),
             )
             return
