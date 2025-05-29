@@ -193,7 +193,7 @@ class Series_DF:
 
         # Data Type is used to simplify updating. Should be considered a constant
         self._data_type: sd.AnyBasicSeriesType = sd.SeriesType.data_type(pandas_df)
-        self._next_bar_time = CALENDARS.next_timestamp(self.calendar, self.df.index[-1], self.freq_code, self._ext)
+        self._next_bar_time = CALENDARS.next_timestamp(self.calendar, self.df.index[-1], self._tf, self._ext)
 
     # region --------- Properties --------- #
 
@@ -206,11 +206,6 @@ class Series_DF:
     def ext(self) -> bool | None:
         "True if data has Extended Trading Hours Data, False if no ETH Data, None if undefined."
         return self._ext
-
-    @property
-    def freq_code(self) -> str | pd.Timedelta:
-        "Joint Timedelta / frequency string. Used w/ Calendars to generate HTF/LTF ranges."
-        return self._pd_tf if self._pd_tf <= pd.Timedelta("1D") else self._tf.toStr
 
     @property
     def timeframe(self) -> TF:
@@ -366,7 +361,7 @@ class Series_DF:
 
         time = data_dict.pop("time")
         self.df = pd.concat([self.df, pd.DataFrame([data_dict], index=[time])])
-        self._next_bar_time = CALENDARS.next_timestamp(self.calendar, time, self.freq_code, self._ext)
+        self._next_bar_time = CALENDARS.next_timestamp(self.calendar, time, self._tf, self._ext)
 
         return dataclass_inst
 
@@ -397,22 +392,23 @@ class Whitespace_DF:
     """
 
     BUFFER_LEN = 500  # Number of bars to project ahead of the data series
+    OVERLAP_LEN = 5  # Number of Bars to overlap with the main Series Data
 
     def __init__(self, base_data: Series_DF):
         self.ext = base_data.ext
-        self.tf = base_data.freq_code
+        self.tf = base_data._tf
         self.calendar = base_data.calendar
 
         # Create Datetime Index from the calendar given the known start_date and projected end_date
         self.dt_index = CALENDARS.date_range(
             self.calendar,
             self.tf,
-            base_data.df.index[-1],
-            periods=self.BUFFER_LEN + 1,
+            base_data.df.index[-self.OVERLAP_LEN],
+            periods=self.BUFFER_LEN + self.OVERLAP_LEN,
             include_ETH=base_data.ext,
         )
 
-        if len(self.dt_index) < self.BUFFER_LEN:
+        if len(self.dt_index) < (self.BUFFER_LEN + self.OVERLAP_LEN):
             # Log an Error, No need to raise an exception though, failure isn't that critical.
             # I'm mostly just curious if the code i wrote in pandas_mcal works in all cases or not
             log.error(
@@ -429,7 +425,7 @@ class Whitespace_DF:
     def next_timestamp(self, curr_time: pd.Timestamp) -> pd.Timestamp:
         "Returns the timestamp immediately after the timestamp given as an input"
         if curr_time < self.dt_index[0]:
-            raise ValueError(  # Don't think there's a need to handle this case
+            raise ValueError(
                 f"Requested next time from Whitespace_DF but {curr_time = } "
                 f"comes before the first index of the DF: {self.dt_index = }."
             )
@@ -605,7 +601,7 @@ class Calendars:
     def date_range(
         self,
         calendar: str,
-        freq: str | pd.Timedelta,
+        freq: TF,
         start: pd.Timestamp,
         end: Optional[pd.Timestamp] = None,
         periods: Optional[int] = None,
@@ -613,9 +609,10 @@ class Calendars:
     ) -> pd.DatetimeIndex:
         "Return a DateTimeIndex at the desired frequency only including valid market times."
         if calendar == "24/7":
-            if isinstance(freq, str):  # Need to define 'Start of period' for Month, Quarter, Year
-                freq = freq + "S" if freq[-1] in {"M", "Q", "Y"} else freq
-            return pd.date_range(start, end, freq=freq, periods=periods)
+            tf_str = freq.toStr
+            # Need to define 'Start of period' for Month, Quarter, Year
+            tf_str = tf_str + "S" if tf_str[-1] in {"M", "Q", "Y"} else tf_str
+            return pd.date_range(start, end, freq=tf_str, periods=periods)
         if calendar not in self.mkt_cache:
             raise ValueError(f"{calendar = } is not loaded into the calendar cache.")
 
@@ -625,31 +622,33 @@ class Calendars:
 
         # For Time periods greater than 1D use HTF Date_Range.
         mkt_calendar = self.mkt_cache[calendar]
-        days = mkt_calendar.date_range_htf(freq, start, end, periods, closed="left")
+        days = mkt_calendar.date_range_htf(freq.toStr, start, end, periods, closed="left")
         time = "pre" if include_ETH and "pre" in mkt_calendar.market_times else "market_open"
         return pd.DatetimeIndex(
             mkt_calendar.schedule_from_days(days, market_times=[time])[time],
-            dtype="datetime64[ns]",
+            dtype="datetime64[ns, UTC]",
         )
 
     def next_timestamp(
         self,
         calendar: str,
         current_time: pd.Timestamp,
-        freq: str | pd.Timedelta,
+        freq: TF,
         include_ETH: bool | None = False,
     ) -> pd.Timestamp:
         "Returns the next bar's opening time from a given timestamp. Not always efficient, so store this result"
-        if isinstance(freq, str) and freq[-1] in {"M", "Q", "Y"}:
-            next_time = pd.date_range(current_time, freq=freq + "S", periods=2)[-1]
+        if freq.period == "W":
+            next_time = pd.date_range(current_time, freq=freq.toStr, periods=2)[-1]
+        elif freq.period in {"M", "Q", "Y"}:
+            next_time = pd.date_range(current_time, freq=freq.toStr + "S", periods=2)[-1]
         else:
-            next_time = current_time + pd.Timedelta(freq)
+            next_time = current_time + freq.as_timedelta()
 
         if calendar == "24/7":
             return next_time
 
         # Calculate Next date from LTF Date_Range.
-        if isinstance(freq, pd.Timedelta):
+        if freq.as_timedelta() < pd.Timedelta("1D"):
             try:
                 if self.mkt_cache[calendar].open_at_time(
                     self.schedule_cache[calendar], next_time, False, not include_ETH
@@ -659,12 +658,12 @@ class Calendars:
                 # Schedule Doesn't Cover the Time Needed call Date_Range to generate more schedule.
                 pass
 
-            dt = self._date_range_ltf(calendar, freq, current_time, None, 2, include_ETH)
+            dt = self._date_range_ltf(calendar, freq.as_timedelta(), current_time, None, 2, include_ETH)
             return dt[-1]
 
         # Calculate Next date from HTF Date_Range.
         mkt_cal = self.mkt_cache[calendar]
-        days = mkt_cal.date_range_htf(freq, start=current_time, periods=2)
+        days = mkt_cal.date_range_htf(freq.toStr, start=current_time, periods=2)
         time = "pre" if include_ETH and "pre" in mkt_cal.market_times else "market_open"
         dt = mkt_cal.schedule_from_days(days, market_times=[time])[time]
         return mkt_cal.schedule_from_days(days, market_times=[time])[time].iloc[-1]
