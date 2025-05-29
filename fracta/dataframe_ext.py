@@ -193,16 +193,7 @@ class Series_DF:
 
         # Data Type is used to simplify updating. Should be considered a constant
         self._data_type: sd.AnyBasicSeriesType = sd.SeriesType.data_type(pandas_df)
-
-        if self._pd_tf >= pd.Timedelta(days=1):
-            # True if 'Time' lacks an opening Time
-            self.only_days = self.curr_bar_open_time == self.curr_bar_open_time.normalize()
-        else:
-            self.only_days = False
-
         self._next_bar_time = CALENDARS.next_timestamp(self.calendar, self.df.index[-1], self.freq_code, self._ext)
-        if self.only_days:
-            self._next_bar_time = self._next_bar_time.normalize()
 
     # region --------- Properties --------- #
 
@@ -375,10 +366,7 @@ class Series_DF:
 
         time = data_dict.pop("time")
         self.df = pd.concat([self.df, pd.DataFrame([data_dict], index=[time])])
-
         self._next_bar_time = CALENDARS.next_timestamp(self.calendar, time, self.freq_code, self._ext)
-        if self.only_days:
-            self._next_bar_time = self._next_bar_time.normalize()
 
         return dataclass_inst
 
@@ -414,7 +402,6 @@ class Whitespace_DF:
         self.ext = base_data.ext
         self.tf = base_data.freq_code
         self.calendar = base_data.calendar
-        self.only_days = base_data.only_days
 
         # Create Datetime Index from the calendar given the known start_date and projected end_date
         self.dt_index = CALENDARS.date_range(
@@ -424,9 +411,6 @@ class Whitespace_DF:
             periods=self.BUFFER_LEN + 1,
             include_ETH=base_data.ext,
         )
-
-        if self.only_days:
-            self.dt_index = self.dt_index.normalize()
 
         if len(self.dt_index) < self.BUFFER_LEN:
             # Log an Error, No need to raise an exception though, failure isn't that critical.
@@ -453,15 +437,11 @@ class Whitespace_DF:
             # avoid calculation if possible
             return self.dt_index[curr_time < self.dt_index][0]
 
-        time = CALENDARS.next_timestamp(self.calendar, self.dt_index[-1], self.tf, self.ext)
-
-        return time.normalize() if self.only_days else time
+        return CALENDARS.next_timestamp(self.calendar, self.dt_index[-1], self.tf, self.ext)
 
     def extend(self) -> sd.AnyBasicData:
         "Extends the dataframe with one datapoint of whitespace. This whitespace datapoint is a valid trading time."
         next_bar_time = CALENDARS.next_timestamp(self.calendar, self.dt_index[-1], self.tf, self.ext)
-        if self.only_days:
-            next_bar_time = next_bar_time.normalize()
         self.dt_index = self.dt_index.union([next_bar_time])
         return sd.WhitespaceData(next_bar_time)
 
