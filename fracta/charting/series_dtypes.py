@@ -14,7 +14,7 @@ from typing import Any, Dict, Literal, Optional, Self, TypeAlias
 
 import pandas as pd
 
-from .types import Time, JS_Color
+from ..types import Time, JS_Color
 
 logger = logging.getLogger("fracta_log")
 

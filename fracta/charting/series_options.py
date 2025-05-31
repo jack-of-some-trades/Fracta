@@ -11,7 +11,7 @@ from inspect import signature
 import logging
 from typing import Literal, Optional, Self, TypeAlias
 
-from .types import JS_Color, j_func
+from ..types import JS_Color, j_func
 
 logger = logging.getLogger("fracta_log")
 

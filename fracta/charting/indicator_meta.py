@@ -19,9 +19,8 @@ from typing import (
 
 import pandas as pd
 
-from fracta.orm.types import Color
-
-from .util import is_dunder
+from ..types import Color
+from ..util import is_dunder
 
 log = getLogger("fracta_log")
 

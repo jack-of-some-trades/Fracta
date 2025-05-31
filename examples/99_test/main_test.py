@@ -44,7 +44,7 @@ async def main():
     df = pd.read_csv("examples/data/ohlcv.csv")
 
     if isinstance(main_frame, fta.ChartingFrame):
-        main_frame.main_series.set_data(df, symbol=fta.Ticker("FRACTA", name="Update by Bar Test", exchange="NASDAQ"))
+        main_frame.timeseries.set_data(df, symbol=fta.Ticker("FRACTA", name="Update by Bar Test", exchange="NASDAQ"))
 
         # indicators.Volume(main_frame)
         # opts = lwc.indicators.SMA.__options__(period=20)

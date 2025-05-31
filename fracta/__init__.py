@@ -15,8 +15,11 @@ import logging
 
 from .util import LazyModule
 
-from .orm import *
-from .orm.series_data import (
+from .types import TF, Color, JS_Color, Ticker
+from .py_window import Window, Container, Frame, Layouts
+from .charting import *
+from .charting.indicator import Indicator, IndicatorOptions
+from .charting.series_dtypes import (
     AnyBasicData,
     WhitespaceData,
     SingleValueData,
@@ -30,9 +33,6 @@ from .orm.series_data import (
     RoundedCandleData,
     AnyBasicSeriesType,
 )
-
-from .window import Window, Container, Frame, ChartingFrame
-from .indicator import Indicator, IndicatorOptions
 from . import indicators
 from . import broker_apis
 

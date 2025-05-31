@@ -5,23 +5,15 @@ from inspect import signature
 from math import floor
 from datetime import datetime
 from dataclasses import dataclass, field
-from typing import Any, TypeAlias, Literal, Optional, Self
+from typing import Any, TypeAlias, Literal, Optional, Self, get_args
 
 from pandas import Timestamp, Timedelta
 
-# pylint: disable=line-too-long, invalid-name
-
-periods = ["s", "m", "h", "D", "W", "M", "Y", "E"]
-PERIOD_CODES: TypeAlias = Literal["s", "m", "h", "D", "W", "M", "Y", "E"]
-
-UTCTimestamp: TypeAlias = int
-Time: TypeAlias = UTCTimestamp | str | Timestamp | datetime
-# Time: TypeAlias = Union[UTCTimestamp, BusinessDay, str]
-# BusinessDay is an object in the lightweight charts library. It is not included since
-# it only supports timeframes of 'Day' or longer. This is also true for Lightweight-chart's string
-# as well, but this python library can convert strings to a Standard Pandas Timestamp
+# pylint: disable=invalid-name
 
 logger = logging.getLogger("fracta_log")
+
+# region ---- ---- ---- ---- ---- ---- Ticker Dataclass ---- ---- ---- ---- ---- ---- #
 
 
 @dataclass(slots=True)
@@ -99,6 +91,11 @@ def _str_compare(a: Optional[str], b: Optional[str]) -> bool:
     return a == b
 
 
+# endregion
+
+# region ---- ---- ---- ---- ---- ---- JS Function Literal ---- ---- ---- ---- ---- ---- #
+
+
 class j_func:
     """
     String Representation of a Javascript Function.
@@ -125,6 +122,11 @@ class j_func:
 def NumtoHex(num: int):
     "Format a [0,255] number into Hex"
     return hex(num).lstrip("0x").zfill(2)
+
+
+# endregion
+
+# region ---- ---- ---- ---- ---- ---- Color Dataclass ---- ---- ---- ---- ---- ---- #
 
 
 # Note, this object cannot be a dataclass otherwise json.dumps()
@@ -276,6 +278,20 @@ class Color:
 # String Should be a #(Hex) Color.
 JS_Color: TypeAlias = str | Color
 
+# endregion
+
+# region ---- ---- ---- ---- ---- ---- Timeframe Dataclass ---- ---- ---- ---- ---- ---- #
+
+TF_PERIOD_CODES: TypeAlias = Literal["s", "m", "h", "D", "W", "M", "Y", "E"]
+TF_CODE_SET = set(get_args(TF_PERIOD_CODES))
+
+UTCTimestamp: TypeAlias = int
+Time: TypeAlias = UTCTimestamp | str | Timestamp | datetime
+# Time: TypeAlias = Union[UTCTimestamp, BusinessDay, str]
+# BusinessDay is an object in the lightweight charts library. It is not included since
+# it only supports timeframes of 'Day' or longer. This is also true for Lightweight-chart's string
+# as well, but this python library can convert strings to a Standard Pandas Timestamp
+
 
 @dataclass(slots=True)
 class TF:
@@ -301,9 +317,9 @@ class TF:
     """
 
     _mult: int
-    _period: PERIOD_CODES
+    _period: TF_PERIOD_CODES
 
-    def __init__(self, mult: int, period: PERIOD_CODES):
+    def __init__(self, mult: int, period: TF_PERIOD_CODES):
         self._validate(mult, period)
         self._period = period
         self._mult = mult
@@ -317,7 +333,7 @@ class TF:
         period = tf_str[-1]
         mult = tf_str[0:-1]
         mult = int(mult) if mult != "" else 1
-        if period in periods:
+        if period in TF_CODE_SET:
             return TF(mult, period)  # type: ignore
 
         raise TypeError(f"'{period}' not a valid Timeframe Period Code.")
@@ -398,12 +414,12 @@ class TF:
         self._mult = value
 
     @property
-    def period(self) -> PERIOD_CODES:
+    def period(self) -> TF_PERIOD_CODES:
         "Timeframe Period"
         return self._period
 
     @period.setter
-    def period(self, value: PERIOD_CODES):
+    def period(self, value: TF_PERIOD_CODES):
         self._validate(self._mult, value)
         self._period = value
 
@@ -415,7 +431,7 @@ class TF:
     # endregion
 
     @staticmethod
-    def _validate(amount: int, unit: PERIOD_CODES):
+    def _validate(amount: int, unit: TF_PERIOD_CODES):
         if amount == 0:
             amount = 1
         elif amount < 0:
@@ -477,3 +493,6 @@ class TF:
         1 Month = 30.44 Days, 1 Year = 365.24 Days
         """
         return Timedelta(self.unix_len * 1_000_000_000)
+
+
+# endregion

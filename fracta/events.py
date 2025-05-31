@@ -13,10 +13,10 @@ from typing import (
 
 from pandas import DataFrame
 
-from .orm import types
+from . import types
 
 if TYPE_CHECKING:
-    from .indicators import Series
+    from .indicators import Timeseries
 
 
 class Events:
@@ -72,15 +72,15 @@ class Symbol_search_async_2(Protocol):
 
 
 class Socket_Open_sync(Protocol):
-    def __call__(self, ticker: types.Ticker, series: "Series") -> None: ...
+    def __call__(self, ticker: types.Ticker, series: "Timeseries") -> None: ...
 class Socket_Open_async(Protocol):
-    async def __call__(self, ticker: types.Ticker, series: "Series") -> None: ...
+    async def __call__(self, ticker: types.Ticker, series: "Timeseries") -> None: ...
 
 
 class Socket_Close_sync(Protocol):
-    def __call__(self, series: "Series") -> None: ...
+    def __call__(self, series: "Timeseries") -> None: ...
 class Socket_close_async(Protocol):
-    async def __call__(self, series: "Series") -> None: ...
+    async def __call__(self, series: "Timeseries") -> None: ...
 
 
 # Type Aliases to congregate various different Protocol Signatures into Groups

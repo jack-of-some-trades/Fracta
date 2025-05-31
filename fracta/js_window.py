@@ -12,11 +12,10 @@ from abc import ABC, abstractmethod
 import webview
 from webview.errors import JavascriptException
 
-from fracta.util import is_dunder
-
-from . import orm, SeriesType
 from .js_cmd import JS_CMD, VIEW_CMD_ROLODEX
 from .py_cmd import PY_CMD
+from .types import Ticker, TF
+from .util import is_dunder
 
 file_dir = dirname(abspath(__file__))
 logger = logging.getLogger("fracta_log")
@@ -71,7 +70,7 @@ class js_api:
         self.rtn_queue.put((PY_CMD.REORDER_CONTAINERS, _from, _to))
 
     def layout_change(self, container_id: str, layout: int):
-        self.rtn_queue.put((PY_CMD.LAYOUT_CHANGE, container_id, orm.Layouts(layout)))
+        self.rtn_queue.put((PY_CMD.LAYOUT_CHANGE, container_id, layout))
 
     def series_change(self, container_id: str, frame_id: str, series_type: str):
         try:
@@ -80,7 +79,7 @@ class js_api:
                     PY_CMD.SERIES_CHANGE,
                     container_id,
                     frame_id,
-                    SeriesType(series_type),
+                    series_type,
                 )
             )
         except ValueError:
@@ -93,8 +92,8 @@ class js_api:
                     PY_CMD.TIMESERIES_REQUEST,
                     c_id,
                     f_id,
-                    orm.Ticker.from_dict(ticker),
-                    orm.TF.fromStr(tf_str),
+                    Ticker.from_dict(ticker),
+                    TF.fromStr(tf_str),
                 )
             )
         except ValueError as e:

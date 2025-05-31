@@ -67,7 +67,7 @@ class AlpacaAPI:
         self.stock_task = evt_loop.create_task(self.stock_stream._run_forever())
         self.crypto_task = evt_loop.create_task(self.crypto_stream._run_forever())
 
-        self.open_sockets: Dict[str, list[fta.indicators.Series]] = {}
+        self.open_sockets: Dict[str, list[fta.indicators.Timeseries]] = {}
         self.series_ticker_map: Dict[int, str] = {}
 
         self._assets = None
@@ -160,7 +160,7 @@ class AlpacaAPI:
             log.error("get_bars() APIError: %s", e)
             return None
 
-    def open_socket(self, ticker: fta.Ticker, series: fta.indicators.Series):
+    def open_socket(self, ticker: fta.Ticker, series: fta.indicators.Timeseries):
         "Open Websocket Datastream if a channel is available"
         log.info("%s Requested Socket open of %s.", series.js_id, ticker.symbol)
 
@@ -184,7 +184,7 @@ class AlpacaAPI:
         self.open_sockets[ticker.symbol] = [series]
         self.series_ticker_map[id(series)] = ticker.symbol
 
-    def close_socket(self, series: fta.indicators.Series):
+    def close_socket(self, series: fta.indicators.Timeseries):
         "Close a Websocket Datastream that's no longer needed"
         if id(series) not in self.series_ticker_map:
             return
@@ -235,7 +235,7 @@ def symbols_from_df(matches: DataFrame, **defaults) -> list[fta.Ticker]:
 
 # region ---- ---- ---- ---- Format Timeframes  ---- ---- ---- ---- #
 
-lwc_to_alpaca_map: Dict[fta.orm.types.PERIOD_CODES, Optional[str]] = {
+lwc_to_alpaca_map: Dict[fta.types.TF_PERIOD_CODES, Optional[str]] = {
     "s": None,
     "m": TimeFrameUnit.Minute,
     "h": TimeFrameUnit.Hour,

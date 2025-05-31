@@ -8,10 +8,10 @@ from dataclasses import dataclass
 from typing import Any, Optional, TYPE_CHECKING
 
 
-from .js_cmd import JS_CMD
-from .orm.series_data import SingleValueData
+from ..js_cmd import JS_CMD
+from .series_dtypes import SingleValueData
 
-from .orm.types import JS_Color
+from ..types import JS_Color
 
 if TYPE_CHECKING:
     from .indicator import Indicator

@@ -19,18 +19,18 @@ import weakref
 
 import pandas as pd
 
-from fracta.indicator_meta import (
+from .indicator_meta import (
     IndicatorMeta,
     OptionsMeta,
     IndicatorPackage,
 )
-from fracta.orm.types import Color
 
-from . import window as win
+from .. import py_window as win
 from . import primative as pr
 from . import series_common as sc
-from .util import ID_Dict, is_dunder
-from .js_cmd import JS_CMD
+from ..util import ID_Dict, is_dunder
+from ..js_cmd import JS_CMD
+from ..types import Color
 
 log = getLogger("fracta_log")
 
@@ -256,7 +256,7 @@ class Watcher:
             self._unlink_all_args()  # Clear all present args before setting
 
         parent_cls = parent.__class__
-        main_series = parent.parent_frame.main_series
+        main_series = parent.parent_frame.timeseries
 
         # Auto-Link default args if the Indicator requests it.
         if "bar_state" in parent_cls.__input_args__ and "bar_state" not in args:
@@ -402,7 +402,7 @@ class Indicator(metaclass=IndicatorMeta):
         # Must preform this check after id generation so parent.main_series is guaranteed valid.
         # (Specifically for when parent.main_series is trying to find a reference to itself)
         if isinstance(parent, win.Frame):
-            self.parent_indicator = parent.main_series
+            self.parent_indicator = parent.timeseries
         else:
             self.parent_indicator = parent
 
@@ -461,7 +461,7 @@ class Indicator(metaclass=IndicatorMeta):
         if self.parent_indicator.default_output is not None:
             return self.parent_indicator.default_output
 
-        return self.parent_frame.main_series.close
+        return self.parent_frame.timeseries.close
 
     def __del__(self):
         log.debug("Deleteing %s: %s", self.__class__.__name__, self._js_id)
@@ -692,7 +692,7 @@ class Indicator(metaclass=IndicatorMeta):
         """
         # TODO: Add a nearest_bar_time function to primitive-base to ensure primitives render
         # negating the need for the above comment.
-        return self.parent_frame.main_series.bar_time(index)
+        return self.parent_frame.timeseries.bar_time(index)
 
 
 # pylint: disable=invalid-name

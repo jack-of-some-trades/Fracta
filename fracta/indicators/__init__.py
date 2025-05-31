@@ -9,13 +9,13 @@ __version__ = "0.0.0"
 # All Indicators aside from 'Series' are used a la carte so they can be Lazy Loaded.
 if TYPE_CHECKING:
     from .sma import SMA
-    from .series import Series, BarState
+    from .timeseries import Timeseries, BarState
 
 # The Remainder of this __init__ implements Lazy-Loading of Sub-Modules.
 
 all_by_module = {
     "fracta.indicators.sma": ["SMA"],
-    "fracta.indicators.series": ["Series", "BarState"],
+    "fracta.indicators.timeseries": ["Timeseries", "BarState"],
 }
 object_origins = {}
 

@@ -6,13 +6,13 @@ from typing import Optional
 
 import pandas as pd
 
-from . import util
-from . import indicators
-from . import window as win
+from .. import util
+from .. import indicators
+from .. import py_window as win
 from . import indicator as ind
-from .js_cmd import JS_CMD
+from ..js_cmd import JS_CMD
 
-from . import AnyBasicData, SingleValueData
+from .series_dtypes import AnyBasicData, SingleValueData
 
 logger = logging.getLogger("fracta_log")
 
@@ -36,9 +36,9 @@ class ChartingFrame(win.Frame):
         self.panes = util.ID_Dict[Pane](f"{self._js_id}_p")
         self.indicators = util.ID_Dict[ind.Indicator]("i")
 
-        # Add main pane and Series, neither should ever be deleted
+        # Add main pane and Timeseries, neither should ever be deleted
         self.add_pane(Pane.__special_id__)
-        indicators.Series(self, js_id=indicators.Series.__special_id__)
+        self._timeseries = indicators.Timeseries(self, js_id=indicators.Timeseries.__special_id__)
 
     def __del__(self):
         for indicator in self.indicators.copy().values():
@@ -80,10 +80,10 @@ class ChartingFrame(win.Frame):
         return self.panes[self.panes.prefix + Pane.__special_id__]
 
     @property
-    def main_series(self) -> indicators.Series:
-        "Series Indicator that contain's the Frame's main symbol data"
-        main_series = self.indicators[self.indicators.prefix + indicators.Series.__special_id__]
-        if isinstance(main_series, indicators.Series):
+    def timeseries(self) -> indicators.Timeseries:
+        "Timeseries Indicator that contains the Frame's main series data"
+        main_series = self.indicators[self.indicators.prefix + indicators.Timeseries.__special_id__]
+        if isinstance(main_series, indicators.Timeseries):
             return main_series
         raise AttributeError(f"Cannot find Main Series for Frame {self._js_id}")
 

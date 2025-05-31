@@ -4,7 +4,7 @@ from typing import Optional
 
 import pandas as pd
 
-from fracta.indicator import (
+from fracta.charting.indicator import (
     IndParent_T,
     Indicator,
     IndicatorOptions,
@@ -13,7 +13,7 @@ from fracta.indicator import (
     param,
 )
 from fracta import Color, SingleValueData
-from fracta import series_common as sc
+from fracta.charting import series_common as sc
 
 
 class Method(Enum):

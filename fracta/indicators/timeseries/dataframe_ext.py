@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Dict, Optional, Any
 
 import pandas as pd
 
-from .orm import series_data as sd
-from .orm.types import TF
+from ...charting import series_dtypes as sd
+from ...types import TF
 
 log = logging.getLogger("fracta_log")
 

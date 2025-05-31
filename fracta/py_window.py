@@ -2,23 +2,24 @@
 
 from __future__ import annotations
 from abc import abstractmethod, ABC
-from enum import Enum, auto
+from enum import IntEnum, auto
 import logging
 import asyncio
 import multiprocessing as mp
 from functools import partial
 from dataclasses import asdict
-from typing import Callable, Literal, Optional, Protocol
+from typing import TYPE_CHECKING, Callable, Literal, Optional, Protocol
 
-from fracta.dataframe_ext import enable_market_calendars
-
-from . import orm
 from . import util
 
 from .events import Events
 from .js_cmd import JS_CMD
 from .py_cmd import WIN_CMD_ROLODEX
-from .js_api import PyWv, MpHooks, PyWebViewOptions
+from .js_window import PyWv, MpHooks, PyWebViewOptions
+from .types import JS_Color, Ticker, TF
+
+if TYPE_CHECKING:
+    from .charting.series_dtypes import SeriesType
 
 log = logging.getLogger("fracta_log")
 APIs = Literal["psyscale", "alpaca"]
@@ -29,7 +30,7 @@ class BrokerAPI(Protocol):
     def setup_window(self, window: "Window"): ...
 
 
-class FrameTypes(Enum):
+class FrameTypes(IntEnum):
     """
     Enum to define implemented subclasses of Frame.
     This must match the Const Object Definition in container.ts
@@ -37,6 +38,42 @@ class FrameTypes(Enum):
 
     ABSTRACT = auto()
     CHART = auto()
+
+
+class Layouts(IntEnum):
+    "1:1 Mapping of layout.ts Container_Layouts Enum"
+
+    SINGLE = 0
+    DOUBLE_VERT = auto()
+    DOUBLE_HORIZ = auto()
+    TRIPLE_VERT = auto()
+    TRIPLE_VERT_LEFT = auto()
+    TRIPLE_VERT_RIGHT = auto()
+    TRIPLE_HORIZ = auto()
+    TRIPLE_HORIZ_TOP = auto()
+    TRIPLE_HORIZ_BOTTOM = auto()
+    QUAD_SQ_V = auto()
+    QUAD_SQ_H = auto()
+    QUAD_VERT = auto()
+    QUAD_HORIZ = auto()
+    QUAD_LEFT = auto()
+    QUAD_RIGHT = auto()
+    QUAD_TOP = auto()
+    QUAD_BOTTOM = auto()
+
+    @property
+    def num_frames(self) -> int:
+        "Function that returns the number of Frames this layout contains"
+        if self.name.startswith("SINGLE"):
+            return 1
+        elif self.name.startswith("DOUBLE"):
+            return 2
+        elif self.name.startswith("TRIPLE"):
+            return 3
+        elif self.name.startswith("QUAD"):
+            return 4
+        else:
+            return 0
 
 
 class Window:
@@ -53,6 +90,8 @@ class Window:
         options: Optional[PyWebViewOptions] = None,
         **kwargs,
     ) -> None:
+        self.use_calendars = use_calendars
+
         # -------- Setup and start the Pywebview subprocess  -------- #
         if options is not None:
             # PyWebviewOptions Given, overwrite anything in kwargs.
@@ -74,11 +113,6 @@ class Window:
         kwargs["mp_hooks"] = mp_hooks  # Pass the hooks along to PyWv
         self._view_process = mp.Process(target=PyWv, kwargs=kwargs, daemon=daemon)
         self._view_process.start()
-
-        # Only after the second process is launched, import pandas_market_calendars.
-        # No need to slow down the second process with an unused import
-        if use_calendars:
-            enable_market_calendars()
 
         # Wait for PyWebview to load before continuing
         # js_loaded_event set in PyWv._assign_callbacks()
@@ -173,7 +207,7 @@ class Window:
         "Pass a .css file's absolute filepath to the window to load it"
         self._fwd_queue.put((JS_CMD.LOAD_CSS, filepath))
 
-    def set_user_colors(self, opts: list[orm.JS_Color]):
+    def set_user_colors(self, opts: list[JS_Color]):
         "Set the User Defined Colors available in the Color Picker"
         self._fwd_queue.put((JS_CMD.SET_USER_COLORS, opts))
 
@@ -220,15 +254,15 @@ class Window:
         "Set the available search filters in the symbol search menu."
         self._fwd_queue.put((JS_CMD.SET_SYMBOL_SEARCH_OPTS, category, items))
 
-    def set_layout_favs(self, favs: list[orm.Layouts]):
+    def set_layout_favs(self, favs: list[Layouts]):
         "Set the layout types shown on the Window's TopBar"
         self._fwd_queue.put((JS_CMD.UPDATE_LAYOUT_FAVS, {"favorites": favs}))
 
-    def set_series_favs(self, favs: list[orm.SeriesType]):
+    def set_series_favs(self, favs: list["SeriesType"]):
         "Set the Series types shown on the Window's TopBar"
         self._fwd_queue.put((JS_CMD.UPDATE_SERIES_FAVS, {"favorites": favs}))
 
-    def set_timeframes(self, favs: list[orm.TF], opts: Optional[list[orm.TF]] = None):
+    def set_timeframes(self, favs: list[TF], opts: Optional[list[TF]] = None):
         "Set the Timeframes shown on the Window's TopBar and in the dropdown menu"
         menu_opts = {}
         if opts is not None:
@@ -259,7 +293,7 @@ class Window:
 
 
 # Window Event Response Function
-def _symbol_search_rsp(items: list[orm.Ticker], *_, fwd_queue: mp.Queue):
+def _symbol_search_rsp(items: list[Ticker], *_, fwd_queue: mp.Queue):
     fwd_queue.put((JS_CMD.SET_SYMBOL_ITEMS, items))
 
 
@@ -270,7 +304,7 @@ class Container:
         self._fwd_queue = fwd_queue
         self._window = window
         self._js_id = _js_id
-        self._layout = orm.Layouts.SINGLE
+        self._layout = Layouts.SINGLE
         self.frames = util.ID_Dict[Frame](f"{_js_id}_f")
 
         self._fwd_queue.put((JS_CMD.ADD_CONTAINER, self._js_id))
@@ -286,14 +320,14 @@ class Container:
 
     def add_frame(self, _js_id: Optional[str] = None, _type: FrameTypes = FrameTypes.CHART) -> Frame:
         "Creates a new Frame. Frame will only be displayed once the layout supports a new frame."
-        match _type:
-            case FrameTypes.CHART:
-                return ChartingFrame(self, _js_id)
-            case FrameTypes.ABSTRACT:
-                raise TypeError("Cannot Initilize an Abstract Frame Type")
+        frame_cls = FRAME_OBJ_MAP.get(_type, None)
+        if frame_cls is not None:
+            return frame_cls(parent=self, _js_id=_js_id)
+        raise TypeError(f"Cannot Initilize an Frame Type {_type}")
 
-    def set_layout(self, layout: orm.Layouts):
+    def set_layout(self, layout: Layouts | int):
         "Set the layout of the Container creating Frames as needed"
+        layout = Layouts(layout)
         # If there arent enough Frames to support the layout then generate them
         frame_diff = len(self.frames) - layout.num_frames
         if frame_diff < 0:
@@ -365,15 +399,15 @@ class Frame(ABC):
     # Little bit awkward that these exist on the Base Class an not on just the Charting Frames
     # This is because these are displayed by the window so all frames should define them
 
-    def __set_displayed_symbol__(self, symbol: orm.Ticker):
+    def __set_displayed_symbol__(self, symbol: Ticker):
         "*Does not change underlying data Symbol*"
         self._fwd_queue.put((JS_CMD.SET_FRAME_SYMBOL, self._js_id, symbol))
 
-    def __set_displayed_timeframe__(self, timeframe: orm.TF):
+    def __set_displayed_timeframe__(self, timeframe: TF):
         "*Does not change underlying data TF*"
         self._fwd_queue.put((JS_CMD.SET_FRAME_TIMEFRAME, self._js_id, timeframe))
 
-    def __set_displayed_series_type__(self, series_type: orm.SeriesType):
+    def __set_displayed_series_type__(self, series_type: "SeriesType"):
         "*Does not change underlying data Type*"
         self._fwd_queue.put((JS_CMD.SET_FRAME_SERIES_TYPE, self._js_id, series_type))
 
@@ -383,4 +417,8 @@ class Frame(ABC):
 # EoF Imports to prevent an import error.
 # Future_Annotations Silence the Typing errors that would occur above.
 # pylint: disable=wrong-import-position
-from .charting_frame import ChartingFrame
+from .charting.charting_frame import ChartingFrame
+
+FRAME_OBJ_MAP: dict[FrameTypes, type[Frame]] = {
+    FrameTypes.CHART: ChartingFrame,
+}
