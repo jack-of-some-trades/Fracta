@@ -28,8 +28,8 @@ async def main():
     window.events.symbol_search += csv.symbol_search_handler
     window.events.open_socket += csv.socket_request_handler
 
-    window.set_search_filters("security_type", ["Crypto", "Equity"])
-    window.set_search_filters("data_broker", ["Local", "Alpaca"])
+    window.set_search_filters("asset_class", ["Crypto", "Equity"])
+    window.set_search_filters("source", ["Local", "Alpaca"])
     window.set_search_filters("exchange", [])
     window.set_layout_favs(
         [
@@ -56,7 +56,7 @@ async def main():
     df = pd.read_csv("examples/data/ohlcv.csv")
 
     if isinstance(main_frame, fta.ChartingFrame):
-        main_frame.main_series.symbol = fta.Symbol("FRACTA", name="Update by Bar Test", exchange="NASDAQ")
+        main_frame.main_series.ticker = fta.Ticker("FRACTA", name="Update by Bar Test", exchange="NASDAQ")
         main_frame.main_series.set_data(df)
 
         sma20 = fta.indicators.SMA(main_frame)

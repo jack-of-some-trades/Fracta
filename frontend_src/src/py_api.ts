@@ -3,7 +3,7 @@
 import { indicator_pkg } from "../components/layout/topbar/indicators_menu";
 import { Series_Type } from "./charting_frame/series-plugins/series-base";
 import { Container_Layouts, num_frames } from "./layouts";
-import { makeid, symbol_item } from "./types";
+import { makeid, ticker } from "./types";
 
 
 //Each Function Maps directly to a function within the js_api class in js_api.py
@@ -46,11 +46,11 @@ export class py_api {
     series_change = (container_id: string, frame_id: string, series_type: Series_Type) => {
         console.log(`Series Change: ${container_id},${frame_id},${series_type}`)
     };
-    data_request = (container_id: string, frame_id: string, symbol: symbol_item, tf: string) => {
-        console.log(`Data Request: ${container_id},${frame_id},${symbol},${tf}`)
+    data_request = (container_id: string, frame_id: string, ticker: ticker, tf: string) => {
+        console.log(`Data Request: ${container_id},${frame_id},${ticker},${tf}`)
     };
-    symbol_search = (symbol: string, types: string[], brokers: string[], exchanges: string[], confirmed: boolean) => {
-        console.log(`Search Request: ${symbol},${types},${brokers},${exchanges},${confirmed}`)
+    symbol_search = (symbol: string, sources: string[], exchanges: string[], asset_classes: string[], confirmed: boolean) => {
+        console.log(`Search Request: ${symbol},${sources},${exchanges},${asset_classes},${confirmed}`)
     };
 
     set_indicator_options = (container_id: string, frame_id: string, ind_id:string, obj: Object) => {
@@ -69,7 +69,7 @@ export class py_api {
 
     setFrameless = (arg:boolean) => {}
 
-    populate_search_symbols = (items:symbol_item[]) => {}
+    populate_search_tickers = (items:ticker[]) => {}
     set_search_filters = (category:string, opts:string[]) => {}
 
     populate_indicator_pkgs = (packages:{[key: string]: indicator_pkg}) => {}

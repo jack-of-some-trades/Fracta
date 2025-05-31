@@ -5,7 +5,7 @@ import { layout_display } from "../../components/layout/layouts";
 import { update_tab_func } from "../container";
 import { frame } from "../frame";
 import { Container_Layouts, flex_frame, layout_switch, num_frames, Orientation, resize_sections } from "../layouts";
-import { symbol_item, tf } from "../types";
+import { tf, ticker } from "../types";
 import { indicator } from "./indicator";
 import { pane } from "./pane";
 import { Series_Type } from "./series-plugins/series-base";
@@ -27,7 +27,7 @@ export class chart_frame extends frame {
     element: JSX.Element
 
     timeframe: tf
-    symbol: symbol_item
+    ticker: ticker
     series_type: Series_Type
     indicators = new Map<string, indicator>()
     sources: Accessor<data_src[]>
@@ -71,17 +71,17 @@ export class chart_frame extends frame {
         // The following 3 variables are actually properties of a frame's primary Series(Indicator) obj.
         // While these really should be owned by that Series indicator and not a frame, this is how the 
         // implementation will stay until when/if indicator sub-types have their own classes in typescript.
-        this.symbol = { ticker: 'LWPC' }
+        this.ticker = { symbol: 'FRACTA' }
         this.timeframe = new tf(1, 'D')
         this.series_type = Series_Type.CANDLESTICK
     }
 
     onActivation() {
         //Update Window Elements
-        this.update_tab(this.symbol.ticker)
+        this.update_tab(this.ticker.symbol)
         window.topbar.setSeries(this.series_type)
         window.topbar.setTimeframe(this.timeframe)
-        window.topbar.setTicker(this.symbol.ticker)
+        window.topbar.setTicker(this.ticker.symbol)
 
         if (window.active_pane === undefined || !this.panes.includes(window.active_pane))
             this.panes[0].assign_active_pane()
@@ -105,11 +105,11 @@ export class chart_frame extends frame {
         this.panes.forEach(pane => { pane.update_whitespace_data(data, Primitive_data) })
     }
 
-    protected set_symbol(new_symbol: symbol_item) {
-        this.symbol = new_symbol
-        this.update_tab(this.symbol.ticker)
+    protected set_ticker(new_ticker: ticker) {
+        this.ticker = new_ticker
+        this.update_tab(this.ticker.symbol)
         if (this == window.active_frame)
-            window.topbar.setTicker(this.symbol.ticker)
+            window.topbar.setTicker(this.ticker.symbol)
     }
 
     protected set_timeframe(new_tf_str: string) {

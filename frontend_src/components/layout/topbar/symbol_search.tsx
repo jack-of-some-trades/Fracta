@@ -4,7 +4,7 @@
 
 import { createSignal, For, onCleanup, onMount, Setter, splitProps } from "solid-js"
 import { createStore, SetStoreFunction } from "solid-js/store"
-import { symbol_item } from "../../../src/types"
+import { ticker } from "../../../src/types"
 import { Icon, icons } from "../../icons"
 import { location_reference, overlay_div_props, OverlayCTX, OverlayDiv, point } from "../overlay_manager"
 
@@ -12,14 +12,14 @@ import "../../../css/layout/symbol_search.css"
 
 interface select_filters {
     exchange:string[],
-    data_broker:string[],
-    security_type:string[],
+    source:string[],
+    asset_class:string[],
 }
 
 const default_sel_filters:select_filters = {
     exchange:["NYSE", "NASDAQ"],
-    data_broker:["Local", "Alpaca"],
-    security_type:["Crypto", "Equity"],
+    source:["Local", "Alpaca"],
+    asset_class:["Crypto", "Equity"],
 }
 
 export function SymbolSearchBox(){
@@ -31,7 +31,7 @@ export function SymbolSearchBox(){
     const display = displaySignal[0]
     const setDisplay = displaySignal[1]
 
-    const [ticker, setTicker] = createSignal<string>("LWPC")
+    const [ticker, setTicker] = createSignal<string>("FRACTA")
     const [replace, setReplace] = createSignal<boolean>(true)
     const [menuLocation, setMenuLocation] = createSignal<point>({x:0, y:0})
 
@@ -54,16 +54,16 @@ export function SymbolSearchBox(){
     onCleanup(() => {window.removeEventListener('resize', position_menu)})
 
     //These signals and stores are initlilized here so that their state isn't reset when the search menu disappears
-    const [symbols, setSymbols] = createSignal<symbol_item[]>([])
+    const [tickers, setTickers] = createSignal<ticker[]>([])
     const [filters, setFilters] = createStore<select_filters>(default_sel_filters)
     window.api.set_search_filters = setFilters
-    window.api.populate_search_symbols = setSymbols
+    window.api.populate_search_tickers = setTickers
 
     OverlayCTX().attachOverlay(
         id,
         <SymbolSearchMenu
             id={id}
-            symbols={symbols()}
+            tickers={tickers()}
             setDisplay={setDisplay}
             filters={filters}
             setFilters={setFilters}
@@ -93,7 +93,7 @@ export function SymbolSearchBox(){
 
 
 interface search_menu_props extends Omit<overlay_div_props, "location_ref">{
-    symbols:symbol_item[]
+    tickers:ticker[]
     setDisplay:Setter<boolean>,
     replace:boolean,
     setReplace:Setter<boolean>,
@@ -103,14 +103,14 @@ interface search_menu_props extends Omit<overlay_div_props, "location_ref">{
 type prop_key = keyof select_filters
 const label_map = new Map<prop_key, string>([
     ["exchange","Exchange:"],
-    ["data_broker","Data Broker:"],
-    ["security_type","Security Type:"],
+    ["source","Data Source:"],
+    ["asset_class","Asset Class:"],
 ])
 
 export function SymbolSearchMenu(props:search_menu_props){
-    const [,overlayDivProps] = splitProps(props, ["replace", "setReplace", "symbols", "filters", "setFilters", "setDisplay"])
+    const [,overlayDivProps] = splitProps(props, ["replace", "setReplace", "tickers", "filters", "setFilters", "setDisplay"])
 
-    function fetch(symbol:symbol_item){
+    function fetch(symbol:ticker){
         if (window.active_frame?.timeframe)
             window.api.data_request(
                 window.active_container?.id,
@@ -122,23 +122,23 @@ export function SymbolSearchMenu(props:search_menu_props){
     }
 
     function search(confirmed:boolean){
-        const symbol_menu = document.querySelector(`#${props.id}`); if (!symbol_menu) return
+        const search_menu = document.querySelector(`#${props.id}`); if (!search_menu) return
         
         // Fetch all the filter information directly from the DOM. Easier than creating yet another Store
-        const symbol = (symbol_menu.querySelector("input.search_input") as HTMLInputElement).value
+        const symbol = (search_menu.querySelector("input.search_input") as HTMLInputElement).value
         const exchanges = Array.from(
-            symbol_menu.querySelectorAll("#exchange > .bubble_item[active]"), 
+            search_menu.querySelectorAll("#exchange > .bubble_item[active]:not([id=any])"), 
             (node)=>node?.textContent??""
         )
-        const brokers = Array.from(
-            symbol_menu.querySelectorAll("#data_broker > .bubble_item[active]"), 
+        const sources = Array.from(
+            search_menu.querySelectorAll("#source > .bubble_item[active]:not([id=any])"), 
             (node)=>node?.textContent??""
         )
-        const types = Array.from(
-            symbol_menu.querySelectorAll("#security_type > .bubble_item[active]"), 
-            (node)=>node?.textContent??""
+        const asset_classes = Array.from(
+            search_menu.querySelectorAll("#asset_class > .bubble_item[active]:not([id=any])"), 
+            (node)=>(node?.textContent??"")
         )
-        window.api.symbol_search(symbol, types, brokers, exchanges, confirmed)
+        window.api.symbol_search(symbol, sources, exchanges, asset_classes, confirmed)
     }
 
     function update_filter(e: MouseEvent){
@@ -210,17 +210,17 @@ export function SymbolSearchMenu(props:search_menu_props){
                 <table id="symbols_table">
                     <thead>
                         <tr class="symbol_list_item text">
-                            <th>Symbol</th><th>Name</th><th>Exchange</th><th>Type</th><th>Data Broker</th>
+                            <th>Symbol</th><th>Name</th><th>Exchange</th><th>Asset Class</th><th>Source</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <For each={props.symbols}>{(symbol)=>
+                        <For each={props.tickers}>{(symbol)=>
                             <tr class="symbol_list_item text" onClick={()=>fetch(symbol)}>
-                                <td>{symbol.ticker}</td>
+                                <td>{symbol.symbol}</td>
                                 <td>{symbol.name ?? "-"}</td>
                                 <td>{symbol.exchange ?? "-"}</td>
-                                <td>{symbol.sec_type ?? "-"}</td>
-                                <td>{symbol.broker ?? "-"}</td>
+                                <td>{symbol.asset_class ?? "-"}</td>
+                                <td>{symbol.source ?? "-"}</td>
                             </tr>
                         }</For>
                     </tbody>

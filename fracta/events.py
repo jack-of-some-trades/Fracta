@@ -41,40 +41,40 @@ class Command_async(Protocol):
 
 
 class Data_request_sync(Protocol):
-    def __call__(self, symbol: types.Symbol, timeframe: types.TF) -> DataFrame | list[dict[str, Any]] | None: ...
+    def __call__(self, ticker: types.Ticker, timeframe: types.TF) -> DataFrame | list[dict[str, Any]] | None: ...
 class Data_request_async(Protocol):
-    def __call__(self, symbol: types.Symbol, timeframe: types.TF) -> DataFrame | list[dict[str, Any]] | None: ...
+    def __call__(self, ticker: types.Ticker, timeframe: types.TF) -> DataFrame | list[dict[str, Any]] | None: ...
 
 
 # Symbol Search Request Protocol
 class Symbol_search_sync_1(Protocol):
-    def __call__(self, ticker: str, **kwargs) -> Optional[list[types.Symbol]]: ...
+    def __call__(self, symbol: str, **kwargs) -> Optional[list[types.Ticker]]: ...
 class Symbol_search_sync_2(Protocol):
     def __call__(
         self,
-        ticker: str,
+        symbol: str,
         confirmed: bool,
-        sec_types: list[str],
-        brokers: list[str],
+        sources: list[str],
         exchanges: list[str],
-    ) -> Optional[list[types.Symbol]]: ...
+        asset_classes: list[str],
+    ) -> Optional[list[types.Ticker]]: ...
 class Symbol_search_async_1(Protocol):
-    async def __call__(self, ticker: str, **kwargs) -> Optional[list[types.Symbol]]: ...
+    async def __call__(self, symbol: str, **kwargs) -> Optional[list[types.Ticker]]: ...
 class Symbol_search_async_2(Protocol):
     async def __call__(
         self,
-        ticker: str,
+        symbol: str,
         confirmed: bool,
-        sec_types: list[str],
-        brokers: list[str],
+        sources: list[str],
         exchanges: list[str],
-    ) -> Optional[list[types.Symbol]]: ...
+        asset_classes: list[str],
+    ) -> Optional[list[types.Ticker]]: ...
 
 
 class Socket_Open_sync(Protocol):
-    def __call__(self, symbol: types.Symbol, series: "Series") -> None: ...
+    def __call__(self, ticker: types.Ticker, series: "Series") -> None: ...
 class Socket_Open_async(Protocol):
-    async def __call__(self, symbol: types.Symbol, series: "Series") -> None: ...
+    async def __call__(self, ticker: types.Ticker, series: "Series") -> None: ...
 
 
 class Socket_Close_sync(Protocol):

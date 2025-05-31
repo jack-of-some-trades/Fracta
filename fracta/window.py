@@ -21,7 +21,7 @@ from .py_cmd import WIN_CMD_ROLODEX
 from .js_api import PyWv, MpHooks, PyWebViewOptions
 
 log = logging.getLogger("fracta_log")
-APIs = Literal["alpaca"]
+APIs = Literal["psyscale", "alpaca"]
 
 
 # pylint: disable=missing-class-docstring, missing-function-docstring, import-outside-toplevel
@@ -108,6 +108,11 @@ class Window:
             from fracta.broker_apis.alpaca_api import AlpacaAPI
 
             self.broker_api = AlpacaAPI()
+            self.broker_api.setup_window(self)
+        elif broker_api == "psyscale":
+            from fracta.broker_apis.psyscale_api import PsyscaleAPI
+
+            self.broker_api = PsyscaleAPI()
             self.broker_api.setup_window(self)
         else:
             log.warning('Unknown Broker API: "%s"', broker_api)
@@ -209,7 +214,7 @@ class Window:
 
     def set_search_filters(
         self,
-        category: Literal["security_type", "data_broker", "exchange"],
+        category: Literal["asset_class", "source", "exchange"],
         items: list[str],
     ):
         "Set the available search filters in the symbol search menu."
@@ -254,7 +259,7 @@ class Window:
 
 
 # Window Event Response Function
-def _symbol_search_rsp(items: list[orm.Symbol], *_, fwd_queue: mp.Queue):
+def _symbol_search_rsp(items: list[orm.Ticker], *_, fwd_queue: mp.Queue):
     fwd_queue.put((JS_CMD.SET_SYMBOL_ITEMS, items))
 
 
@@ -360,7 +365,7 @@ class Frame(ABC):
     # Little bit awkward that these exist on the Base Class an not on just the Charting Frames
     # This is because these are displayed by the window so all frames should define them
 
-    def __set_displayed_symbol__(self, symbol: orm.Symbol):
+    def __set_displayed_symbol__(self, symbol: orm.Ticker):
         "*Does not change underlying data Symbol*"
         self._fwd_queue.put((JS_CMD.SET_FRAME_SYMBOL, self._js_id, symbol))
 

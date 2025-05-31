@@ -41,18 +41,18 @@ class PY_CMD(IntEnum):
 
 def symbol_search(window: "win.Window", *args):
     window.events.symbol_search(
-        ticker=args[0],
+        symbol=args[0],
         confirmed=args[1],
-        types=args[2],
-        brokers=args[3],
-        exchanges=args[4],
+        sources=args[2],
+        exchanges=args[3],
+        asset_classes=args[4],
     )
 
 
-def request_timeseries(window: "win.Window", c_id, f_id, symbol, tf):
+def request_timeseries(window: "win.Window", c_id, f_id, ticker, tf):
     frame = window.get_container(c_id).frames[f_id]
     if isinstance(frame, win.ChartingFrame):
-        frame.main_series.request_timeseries(symbol=symbol, timeframe=tf)
+        frame.main_series.request_timeseries(ticker=ticker, timeframe=tf)
     else:
         log.warning("Can only request a Timeseries when a Charting Window is selected.")
 

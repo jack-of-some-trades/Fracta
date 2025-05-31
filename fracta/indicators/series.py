@@ -15,7 +15,7 @@ from numpy import nan
 
 from fracta import (
     Color,
-    Symbol,
+    Ticker,
     TF,
     AnyBasicSeriesType,
     HistogramData,
@@ -143,7 +143,7 @@ class Series(Indicator):
 
         self.opts = opts
         self.timeframe = None
-        self.symbol = Symbol("LWPC")
+        self.ticker = Ticker("FRACTA")
         self._bar_state: Optional[BarState] = None
 
         # Cached Volume colors w/ the appropriate opacity
@@ -165,27 +165,27 @@ class Series(Indicator):
         self.update_options(opts)
         self.init_menu(opts)
 
-    def request_timeseries(self, symbol: Optional[Symbol], timeframe: Optional[TF] = None):
+    def request_timeseries(self, ticker: Optional[Ticker], timeframe: Optional[TF] = None):
         "Request that this Series change it's symbol and/or timeframe to the one given."
         self.clear_data()
 
-        if symbol is not None:
-            self.symbol = symbol
+        if ticker is not None:
+            self.ticker = ticker
             if self.__frame_primary_src__:
-                self.parent_frame.__set_displayed_symbol__(symbol)
+                self.parent_frame.__set_displayed_symbol__(ticker)
 
         if timeframe is not None:
             self.timeframe = timeframe
             if self.__frame_primary_src__:
                 self.parent_frame.__set_displayed_timeframe__(timeframe)
 
-        if self.symbol is not None and self.timeframe is not None:
+        if self.ticker is not None and self.timeframe is not None:
             self.events.data_request(
-                symbol=self.symbol,
+                ticker=self.ticker,
                 timeframe=self.timeframe,
                 rsp_kwargs={"series": self},
             )
-            self.events.open_socket(symbol=self.symbol, series=self)
+            self.events.open_socket(ticker=self.ticker, series=self)
 
     # region ------------------ Abstract Method Implementations ------------------
 
@@ -242,12 +242,12 @@ class Series(Indicator):
             self.clear_data()
 
         if self.__frame_primary_src__:
-            self.parent_frame.__set_displayed_symbol__(self.symbol)
+            self.parent_frame.__set_displayed_symbol__(self.ticker)
 
         # ---------------- Initialize Series DataFrame ----------------
         if not isinstance(data, pd.DataFrame):
             data = pd.DataFrame(data)
-        self.main_data = Series_DF(data, self.symbol.exchange)
+        self.main_data = Series_DF(data, self.ticker.exchange)
 
         # ---------------- Clear & Return on Bad Data ----------------
         if self.main_data.timeframe.period == "E" or self.main_data.data_type == SeriesType.WhitespaceData:

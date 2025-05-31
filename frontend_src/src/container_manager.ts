@@ -14,7 +14,7 @@ export interface TabProperties {
     favicon?: string | null
 }
 const defaultTabProperties: TabProperties = {
-    title: 'LWPC',
+    title: '',
     favicon: null
 }
 

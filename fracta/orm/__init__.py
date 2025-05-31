@@ -4,7 +4,7 @@ from . import chart_options
 from . import series_data
 from . import series_options
 
-from .types import TF, JS_Color, Color, Symbol, j_func
+from .types import TF, JS_Color, Color, Ticker, j_func
 from .series_data import SeriesType
 from .chart_options import Layouts
 
@@ -20,7 +20,7 @@ __all__ = (
     "j_func",
     "Color",
     "JS_Color",
-    "Symbol",
+    "Ticker",
     #
     # Enums
     "SeriesType",

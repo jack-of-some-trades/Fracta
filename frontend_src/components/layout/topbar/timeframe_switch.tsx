@@ -60,11 +60,11 @@ export function TimeframeSwitcher(){
 
     // Tell Python when the timeframe changes
     function onSel(timeframe:tf){
-        if (window.active_frame?.symbol !== undefined)
+        if (window.active_frame?.ticker !== undefined)
             window.api.data_request( 
                 window.active_container?.id ?? '',
                 window.active_frame?.id ?? '',
-                window.active_frame?.symbol ?? '',
+                window.active_frame?.ticker ?? '',
                 timeframe.toString()
             ) 
     }
