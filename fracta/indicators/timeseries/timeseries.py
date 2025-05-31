@@ -23,7 +23,7 @@ from fracta import (
     AnyBasicData,
     SingleValueData,
 )
-from fracta.indicators.timeseries.dataframe_ext import LTF_DF, Series_DF, Whitespace_DF
+from fracta.indicators.timeseries.timeseries_dfs import LTF_DF, TimeseriesDF, WhitespaceDF
 from fracta.charting import series_common as sc
 from fracta.charting.indicator import (
     Indicator,
@@ -150,9 +150,9 @@ class Timeseries(Indicator):
         self.vol_up_color = Color.from_color(opts.up_color, a=opts.vol_opacity / 100)
         self.vol_down_color = Color.from_color(opts.down_color, a=opts.vol_opacity / 100)
 
-        self.main_data: Optional[Series_DF] = None
+        self.main_data: Optional[TimeseriesDF] = None
         self.ltf_data: Dict[TF, LTF_DF] = {}
-        self.whitespace_data: Optional[Whitespace_DF] = None
+        self.whitespace_data: Optional[WhitespaceDF] = None
 
         self.display_series = sc.SeriesCommon(self, opts.series_type, name="Display-Series")
         self.vol_series = sc.SeriesCommon(
@@ -247,7 +247,7 @@ class Timeseries(Indicator):
         # ---------------- Initialize Series DataFrame ----------------
         if not isinstance(data, pd.DataFrame):
             data = pd.DataFrame(data)
-        self.main_data = Series_DF(data, self.ticker.exchange)
+        self.main_data = TimeseriesDF(data, self.ticker.exchange)
 
         # ---------------- Clear & Return on Bad Data ----------------
         if self.main_data.timeframe.period == "E" or self.main_data.data_type == SeriesType.WhitespaceData:
@@ -264,7 +264,7 @@ class Timeseries(Indicator):
 
         # ---------------- Set the frame's Whitespace Series if needed ----------------
         if self.__frame_primary_src__:
-            self.whitespace_data = Whitespace_DF(self.main_data)
+            self.whitespace_data = WhitespaceDF(self.main_data)
             self.parent_frame.__set_whitespace__(
                 self.whitespace_data.df,
                 SingleValueData(self.main_data.curr_bar_open_time, 0),
@@ -322,7 +322,7 @@ class Timeseries(Indicator):
                         expected_time,
                         data_update.time,
                     )
-                    self.whitespace_data = Whitespace_DF(self.main_data)
+                    self.whitespace_data = WhitespaceDF(self.main_data)
                     self.parent_frame.__set_whitespace__(
                         self.whitespace_data.df,
                         SingleValueData(self.main_data.curr_bar_open_time, 0),

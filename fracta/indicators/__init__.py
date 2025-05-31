@@ -10,6 +10,7 @@ __version__ = "0.0.0"
 if TYPE_CHECKING:
     from .sma import SMA
     from .timeseries import Timeseries, BarState
+    from . import timeseries
 
 # The Remainder of this __init__ implements Lazy-Loading of Sub-Modules.
 
