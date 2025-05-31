@@ -9,7 +9,7 @@ import pandas as pd
 import fracta as fta
 
 
-load_dotenv(find_dotenv(), override=True)
+load_dotenv(find_dotenv())
 
 
 async def main():

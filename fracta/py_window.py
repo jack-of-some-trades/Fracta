@@ -10,7 +10,7 @@ from functools import partial
 from dataclasses import asdict
 from typing import TYPE_CHECKING, Callable, Literal, Optional, Protocol
 
-from . import util
+from . import util, indicators, broker_apis
 
 from .events import Events
 from .js_cmd import JS_CMD
@@ -90,8 +90,6 @@ class Window:
         options: Optional[PyWebViewOptions] = None,
         **kwargs,
     ) -> None:
-        self.use_calendars = use_calendars
-
         # -------- Setup and start the Pywebview subprocess  -------- #
         if options is not None:
             # PyWebviewOptions Given, overwrite anything in kwargs.
@@ -113,6 +111,10 @@ class Window:
         kwargs["mp_hooks"] = mp_hooks  # Pass the hooks along to PyWv
         self._view_process = mp.Process(target=PyWv, kwargs=kwargs, daemon=daemon)
         self._view_process.start()
+
+        if use_calendars:
+            # Enable Calendars after Sub-process Launch so the module isn't loaded by that process.
+            indicators.timeseries.enable_market_calendars()
 
         # Wait for PyWebview to load before continuing
         # js_loaded_event set in PyWv._assign_callbacks()
@@ -139,14 +141,10 @@ class Window:
             return
 
         if broker_api == "alpaca":
-            from fracta.broker_apis.alpaca_api import AlpacaAPI
-
-            self.broker_api = AlpacaAPI()
+            self.broker_api = broker_apis.AlpacaAPI()
             self.broker_api.setup_window(self)
         elif broker_api == "psyscale":
-            from fracta.broker_apis.psyscale_api import PsyscaleAPI
-
-            self.broker_api = PsyscaleAPI()
+            self.broker_api = broker_apis.PsyscaleAPI()
             self.broker_api.setup_window(self)
         else:
             log.warning('Unknown Broker API: "%s"', broker_api)
