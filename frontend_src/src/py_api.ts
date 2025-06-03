@@ -17,6 +17,8 @@ export class py_api {
     // The following functions are called by JS and hook to functions implemented in python.
     // These functions have default commands so functionality is maintained when launched on a local dev server.
     // These are over written (re-routed) at start-up by the Python View Class so they execute their respective python functions
+
+    exec_py = (kwargs:object) => console.log(`Exec_Py given kwargs: ${kwargs}`)
     
     // @ts-ignore                                    
     add_container = () => window.container_manager.add_container(makeid(Array.from(container_manager.containers.keys()), 'c_'));

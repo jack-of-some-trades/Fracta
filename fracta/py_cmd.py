@@ -16,6 +16,8 @@ log = logging.getLogger("fracta_log")
 class PY_CMD(IntEnum):
     "Enumeration of the various commands that javascript can send to python"
 
+    PY_EXEC = auto()
+
     ADD_CONTAINER = auto()
     REMOVE_CONTAINER = auto()
     REORDER_CONTAINERS = auto()
@@ -105,7 +107,12 @@ def reorder_containers(window: "win.Window", _from, _to):
     window.containers.insert(_to, window.containers.pop(_from))
 
 
+def rtn_kwargs_from_window(window: "win.Window", kwargs: dict):
+    window.events.window_callback(kwargs)
+
+
 WIN_CMD_ROLODEX = {
+    PY_CMD.PY_EXEC: rtn_kwargs_from_window,
     PY_CMD.SYMBOL_SEARCH: symbol_search,
     PY_CMD.TIMESERIES_REQUEST: request_timeseries,
     PY_CMD.INDICATOR_REQUEST: request_indicator,

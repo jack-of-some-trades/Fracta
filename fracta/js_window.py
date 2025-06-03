@@ -57,6 +57,9 @@ class js_api:
     def restore(self):
         self.view_window.restore()
 
+    def exec_py(self, kwargs: dict):
+        self.rtn_queue.put((PY_CMD.PY_EXEC, kwargs))
+
     def add_container(self):
         self.rtn_queue.put((PY_CMD.ADD_CONTAINER,))
 
