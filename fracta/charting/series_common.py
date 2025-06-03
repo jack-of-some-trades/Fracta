@@ -268,7 +268,8 @@ class SeriesCommon:
         - Formats the timestamp as a Unix Epoch Integer (in seconds)
 
         This is the smallest form factor dataset that is optimized for transfer over a
-        multiprocessor Queue.
+        multiprocessor Queue. If at some point (past Python 3.13) after multithreading is
+        implemented, this process can be saved for the secondary thread.
         """
         # Format 'data' to a dataframe called '_df' (A reference)
         if isinstance(data, pd.DataFrame):
@@ -332,7 +333,9 @@ class SeriesCommon:
         self.remove_all_markers()
         self.remove_all_pricelines()
 
-    def update_data(self, data: sd.AnySeriesData):
+    def update_data(
+        self, data: sd.AnySeriesData
+    ):  # TODO, Make Data Optional. function should reference DF/Series passed in set_data.
         """
         Update the Data on Screen. The data is sent to the lightweight charts API without checks.
         """

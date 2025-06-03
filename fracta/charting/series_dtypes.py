@@ -291,7 +291,7 @@ AnySeriesData: TypeAlias = (
 
 
 @dataclass
-class ArgMap:
+class ArgMap:  # TODO : Convert to a typed Dict
     """
     Renaming map to specify how the columns of a DataFrame should map to a Displayable Series.
     This object can cover value mapping for Line, Histogram, and Bar series
