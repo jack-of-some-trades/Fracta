@@ -2,7 +2,7 @@
 
 import sys
 from types import ModuleType
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from importlib import import_module
 
 from itertools import islice
@@ -107,35 +107,76 @@ def is_dunder(key: str) -> bool:
 
 class LazyModule(ModuleType):
     """
-    ModuleType Subclass to Lazily Import attributes of a Module Upon Use.
-    For an Example of it being used see __init__.py of the indicators sub-module
+    ModuleType Subclass to Lazily Import Sub-Modules Upon Use.
+    For an Example of it being used see __init__.py of the indicators sub-module.
 
     Based on the werkzeug Library that implimented something similar in pre-release version 0.15.6.
     https://github.com/pallets/werkzeug/blob/71eab19be2c83fb476de51275e2f9bdf69d5cc10/src/werkzeug/__init__.py
     """
+
+    # TODO: Implement a method to Reload Attributes and sub-modules
 
     def __init__(
         self,
         name: str,
         obj_origins: Dict[str, str],
         all_by_module: Dict[str, List[str]],
+        all_sub_module: set[str],
         docs: str | None = None,
     ) -> None:
         super().__init__(name, docs)
-        self.obj_origins = obj_origins
-        self.all_by_module = all_by_module
+        self.__obj_origins__ = obj_origins
+        self.__all_by_module__ = all_by_module
+        self.__all_sub_modules__ = all_sub_module
+        self._loaded_attrs: dict[str, Any] = {}
+        self._loaded_sub_modules: dict[str, ModuleType] = {}
+
+        if len(overlap := all_sub_module.intersection(all_by_module.keys())) > 0:
+            raise AttributeError(
+                "Cannot Initialize Lazy Module. Namespace contains Attribute and Sub-Module"
+                f"Namespace collisions: Collision on: {overlap}"
+            )
+
+        if not hasattr(sys.modules[name], "__all__"):
+            # Auto Populate If not explicity defined by Module __init__
+            self.__all__ = all_sub_module.union(all_by_module.keys())
 
         # Retain a reference to the old module so it isn't garbage collected
-        self.old_module = sys.modules[name]
+        self._old_module = sys.modules[name]
         # Then replace the Module reference so __getattr__ can be intercepted
         sys.modules[name] = self
 
     def __getattr__(self, name):
-        if name in self.obj_origins:
-            module = import_module(self.obj_origins[name], name)
-            for extra_name in self.all_by_module[module.__name__]:
-                setattr(self, extra_name, getattr(module, extra_name))
+        # Check if Requesting any Sub-Modules
+        if name in self.__all_sub_modules__:
+            if name in self._loaded_sub_modules:
+                return self._loaded_sub_modules[name]
+            sub_module = import_module(self.__name__ + "." + name)
+            self._loaded_sub_modules[name] = sub_module
+            return sub_module
+
+        # Check if Requesting an Attr known to the Namespace
+        if name in self.__obj_origins__:
+            if name in self._loaded_attrs:
+                return self._loaded_attrs[name]
+
+            # Object is known, but needs to be imported.
+            sub_module_origin = self.__obj_origins__[name]
+            module = import_module(sub_module_origin)
+            sub_module_name = sub_module_origin.removeprefix(self.__name__ + ".")
+            setattr(self, sub_module_name, module)
+            self._loaded_sub_modules[sub_module_name] = module
+
+            # import all the attrs from the sub-module
+            for import_attr_name in self.__all_by_module__[module.__name__]:
+                _attr = getattr(module, import_attr_name)
+                self._loaded_attrs[import_attr_name] = _attr
+                setattr(self, import_attr_name, _attr)
+
+            # Return the originally requested Attribute
             return getattr(module, name)
+
+        # Object is not a known attr of the LazyModule Namespace. Propagate the request
         return ModuleType.__getattribute__(self, name)
 
     def __dir__(self):

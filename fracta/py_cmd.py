@@ -5,7 +5,8 @@ All Functions have been rolled-up into WIN_CMD_ROLODEX that Maps {PY_CMD: Functi
 
 from enum import IntEnum, auto
 import logging
-from . import window as win
+
+from . import py_window as win
 
 # @pylint: disable=invalid-name, missing-function-docstring, protected-access
 
@@ -14,6 +15,8 @@ log = logging.getLogger("fracta_log")
 
 class PY_CMD(IntEnum):
     "Enumeration of the various commands that javascript can send to python"
+
+    PY_EXEC = auto()
 
     ADD_CONTAINER = auto()
     REMOVE_CONTAINER = auto()
@@ -52,7 +55,7 @@ def symbol_search(window: "win.Window", *args):
 def request_timeseries(window: "win.Window", c_id, f_id, ticker, tf):
     frame = window.get_container(c_id).frames[f_id]
     if isinstance(frame, win.ChartingFrame):
-        frame.main_series.request_timeseries(ticker=ticker, timeframe=tf)
+        frame.timeseries.request_timeseries(ticker=ticker, timeframe=tf)
     else:
         log.warning("Can only request a Timeseries when a Charting Window is selected.")
 
@@ -71,7 +74,7 @@ def layout_change(window: "win.Window", c_id, layout):
 def series_change(window: "win.Window", c_id, f_id, _type):
     frame = window.get_container(c_id).frames[f_id]
     if isinstance(frame, win.ChartingFrame):
-        frame.main_series.change_series_type(_type, True)
+        frame.timeseries.change_series_type(_type, True)
 
 
 def set_indicator_opts(window: "win.Window", c_id, f_id, i_id, opts):
@@ -104,7 +107,12 @@ def reorder_containers(window: "win.Window", _from, _to):
     window.containers.insert(_to, window.containers.pop(_from))
 
 
+def rtn_kwargs_from_window(window: "win.Window", kwargs: dict):
+    window.events.window_callback(kwargs)
+
+
 WIN_CMD_ROLODEX = {
+    PY_CMD.PY_EXEC: rtn_kwargs_from_window,
     PY_CMD.SYMBOL_SEARCH: symbol_search,
     PY_CMD.TIMESERIES_REQUEST: request_timeseries,
     PY_CMD.INDICATOR_REQUEST: request_indicator,

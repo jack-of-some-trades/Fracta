@@ -9,22 +9,27 @@ __version__ = "0.0.0"
 # All Indicators aside from 'Series' are used a la carte so they can be Lazy Loaded.
 if TYPE_CHECKING:
     from .sma import SMA
-    from .series import Series, BarState
+    from .timeseries import Timeseries, BarState
+    from . import timeseries
 
 # The Remainder of this __init__ implements Lazy-Loading of Sub-Modules.
 
-all_by_module = {
+__all_by_module__ = {
     "fracta.indicators.sma": ["SMA"],
-    "fracta.indicators.series": ["Series", "BarState"],
+    "fracta.indicators.timeseries": ["Timeseries", "BarState"],
 }
-object_origins = {}
+__object_origins__ = {}
+__all_sub_modules__ = set()
 
-for module_name, items in all_by_module.items():
+for module_name, items in __all_by_module__.items():
     for item in items:
-        object_origins[item] = module_name
+        __object_origins__[item] = module_name
+
+    __all_sub_modules__.add(module_name.removeprefix("fracta.indicators."))
+
 
 # setup the new module and patch it into the dict of loaded modules
-new_module = LazyModule("fracta.indicators", object_origins, all_by_module)
+new_module = LazyModule("fracta.indicators", __object_origins__, __all_by_module__, __all_sub_modules__)
 new_module.__dict__.update(
     {
         "__file__": __file__,
@@ -32,7 +37,6 @@ new_module.__dict__.update(
         "__path__": __path__,
         "__doc__": __doc__,
         "__version__": __version__,
-        "__all__": tuple(object_origins),
         "__docformat__": "restructuredtext en",
-    }
+    }  # __all__ set by LazyModule Initializer
 )

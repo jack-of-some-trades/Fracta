@@ -16,11 +16,11 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["fracta", "fracta.orm", "fracta.indicators", "fracta.broker_apis"]
+packages = ["fracta", "fracta.charting", "fracta.indicators", "fracta.broker_apis"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-fracta = ["frontend/*", "indicators/*", "broker_apis/*", "orm/*"]
+fracta = ["frontend/*", "charting/*", "indicators/*", "broker_apis/*"]
 
 [project.optional-dependencies]
 dist = [

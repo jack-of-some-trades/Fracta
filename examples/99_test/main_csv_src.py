@@ -56,8 +56,8 @@ async def main():
     df = pd.read_csv("examples/data/ohlcv.csv")
 
     if isinstance(main_frame, fta.ChartingFrame):
-        main_frame.main_series.ticker = fta.Ticker("FRACTA", name="Update by Bar Test", exchange="NASDAQ")
-        main_frame.main_series.set_data(df)
+        main_frame.timeseries.ticker = fta.Ticker("FRACTA", name="Update by Bar Test", exchange="NASDAQ")
+        main_frame.timeseries.set_data(df)
 
         sma20 = fta.indicators.SMA(main_frame)
         fta.indicators.SMA(sma20)

@@ -23,9 +23,9 @@ from fracta import (
     AnyBasicData,
     SingleValueData,
 )
-from fracta import series_common as sc
-from fracta.dataframe_ext import LTF_DF, Series_DF, Whitespace_DF
-from fracta.indicator import (
+from .timeseries_dfs import LTF_DF, TimeseriesDF, WhitespaceDF
+from ...charting import series_common as sc
+from ...charting.indicator import (
     Indicator,
     IndicatorOptions,
     output_property,
@@ -34,7 +34,7 @@ from fracta.indicator import (
 )
 
 if TYPE_CHECKING:
-    from fracta.charting_frame import ChartingFrame
+    from ...charting.charting_frame import ChartingFrame
 
 
 logger = getLogger("fracta_log")
@@ -102,7 +102,7 @@ class SeriesIndicatorOptions(IndicatorOptions):
     )
 
 
-class Series(Indicator):
+class Timeseries(Indicator):
     """
     Draws a Series Object onto the Screen. Expands SeriesCommon behavior by filtering & Aggregating
     data, Creating a Whitespace Expansion Series, & Allowing the ability to change the series type.
@@ -130,16 +130,13 @@ class Series(Indicator):
         # Dunder to allow specific permissions to the main source of a data for a Frame.
         # Because _ids can't be duplicated and this _id is reserved on frame creation,
         # the user can never accidentally set the _js_id to be __special_id__.
-        self.__frame_primary_src__ = self._js_id == self.parent_frame.indicators.prefix + Series.__special_id__
+        self.__frame_primary_src__ = self._js_id == self.parent_frame.indicators.prefix + Timeseries.__special_id__
 
         if opts is None:
             opts = SeriesIndicatorOptions()
 
         if self.__frame_primary_src__:
             self.parent_frame.__set_displayed_series_type__(opts.series_type)
-
-        if self.events.data_request.responder is None:
-            self.events.data_request.responder = _timeseries_request_responder
 
         self.opts = opts
         self.timeframe = None
@@ -150,9 +147,9 @@ class Series(Indicator):
         self.vol_up_color = Color.from_color(opts.up_color, a=opts.vol_opacity / 100)
         self.vol_down_color = Color.from_color(opts.down_color, a=opts.vol_opacity / 100)
 
-        self.main_data: Optional[Series_DF] = None
+        self.main_data: Optional[TimeseriesDF] = None
         self.ltf_data: Dict[TF, LTF_DF] = {}
-        self.whitespace_data: Optional[Whitespace_DF] = None
+        self.whitespace_data: Optional[WhitespaceDF] = None
 
         self.display_series = sc.SeriesCommon(self, opts.series_type, name="Display-Series")
         self.vol_series = sc.SeriesCommon(
@@ -247,7 +244,7 @@ class Series(Indicator):
         # ---------------- Initialize Series DataFrame ----------------
         if not isinstance(data, pd.DataFrame):
             data = pd.DataFrame(data)
-        self.main_data = Series_DF(data, self.ticker.exchange)
+        self.main_data = TimeseriesDF(data, self.ticker.exchange)
 
         # ---------------- Clear & Return on Bad Data ----------------
         if self.main_data.timeframe.period == "E" or self.main_data.data_type == SeriesType.WhitespaceData:
@@ -259,12 +256,12 @@ class Series(Indicator):
 
         # ---------------- Update Displayed Series Objects with Data ----------------
         self._init_bar_state()
-        self.display_series.set_data(self.main_data)
+        self.display_series.set_data(self.main_data.df)
         self._set_vol_series()
 
         # ---------------- Set the frame's Whitespace Series if needed ----------------
         if self.__frame_primary_src__:
-            self.whitespace_data = Whitespace_DF(self.main_data)
+            self.whitespace_data = WhitespaceDF(self.main_data)
             self.parent_frame.__set_whitespace__(
                 self.whitespace_data.df,
                 SingleValueData(self.main_data.curr_bar_open_time, 0),
@@ -322,7 +319,7 @@ class Series(Indicator):
                         expected_time,
                         data_update.time,
                     )
-                    self.whitespace_data = Whitespace_DF(self.main_data)
+                    self.whitespace_data = WhitespaceDF(self.main_data)
                     self.parent_frame.__set_whitespace__(
                         self.whitespace_data.df,
                         SingleValueData(self.main_data.curr_bar_open_time, 0),
@@ -426,7 +423,7 @@ class Series(Indicator):
                 self.main_data.df.drop(columns="vol_color", inplace=True)
 
             # Color Doesn't Need to exist to update the Series
-            self.vol_series.set_data(self.main_data)
+            self.vol_series.set_data(self.main_data.df)
 
     def _update_vol_series(self):
         if self._bar_state is None:
@@ -455,8 +452,9 @@ class Series(Indicator):
 
     # endregion
 
-    def change_series_type(self, series_type: SeriesType, update_ui_menu=False):
+    def change_series_type(self, series_type: SeriesType | str, update_ui_menu=False):
         "Change the Series Type of the main dataset"
+        series_type = SeriesType(series_type)
         # Check Input
         if series_type == SeriesType.WhitespaceData:
             return
@@ -469,7 +467,7 @@ class Series(Indicator):
 
         # Set. No Data renaming needed, that is handeled when converting to json
         self.opts.series_type = series_type
-        self.display_series.change_series_type(series_type, self.main_data)
+        self.display_series.change_series_type(series_type, self.main_data.df)
 
         # Update window display if necessary
         if self.__frame_primary_src__:
@@ -585,12 +583,6 @@ class Series(Indicator):
         return pd.Series({})
 
     # endregion
-
-
-def _timeseries_request_responder(data: pd.DataFrame | list[dict[str, Any]] | None, series: Series, **_):
-    "Function that responds to the data returned by an Event.data_request being emitted"
-    if data is not None:
-        series.set_data(data)
 
 
 # endregion

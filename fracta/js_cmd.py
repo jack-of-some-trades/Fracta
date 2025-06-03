@@ -11,7 +11,7 @@ from dataclasses import is_dataclass, asdict
 
 from pandas import DataFrame, Timestamp, notnull
 
-from .orm.types import Color, j_func, TF
+from .types import Color, j_func, TF
 
 # @pylint: disable=invalid-name, line-too-long, missing-function-docstring
 

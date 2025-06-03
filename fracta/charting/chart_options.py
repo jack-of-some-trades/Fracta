@@ -4,48 +4,11 @@ from dataclasses import dataclass, field
 from enum import IntEnum, auto
 from typing import Literal, Optional, TypeAlias, Union
 
-from fracta.orm.series_options import LineStyle
+from .series_options import LineStyle
 
-from .types import JS_Color, j_func
+from ..types import JS_Color, j_func
 
-# pylint: disable=line-too-long, invalid-name
-
-
-class Layouts(IntEnum):
-    "1:1 Mapping of layout.ts Container_Layouts Enum"
-
-    SINGLE = 0
-    DOUBLE_VERT = auto()
-    DOUBLE_HORIZ = auto()
-    TRIPLE_VERT = auto()
-    TRIPLE_VERT_LEFT = auto()
-    TRIPLE_VERT_RIGHT = auto()
-    TRIPLE_HORIZ = auto()
-    TRIPLE_HORIZ_TOP = auto()
-    TRIPLE_HORIZ_BOTTOM = auto()
-    QUAD_SQ_V = auto()
-    QUAD_SQ_H = auto()
-    QUAD_VERT = auto()
-    QUAD_HORIZ = auto()
-    QUAD_LEFT = auto()
-    QUAD_RIGHT = auto()
-    QUAD_TOP = auto()
-    QUAD_BOTTOM = auto()
-
-    @property
-    def num_frames(self) -> int:
-        "Function that returns the number of Frames this layout contains"
-        if self.name.startswith("SINGLE"):
-            return 1
-        elif self.name.startswith("DOUBLE"):
-            return 2
-        elif self.name.startswith("TRIPLE"):
-            return 3
-        elif self.name.startswith("QUAD"):
-            return 4
-        else:
-            return 0
-
+# pylint: disable=invalid-name
 
 # region  ---- ---- ---- ---- ---- ---- Price Scale Options  ---- ---- ---- ---- ---- ---- #
 

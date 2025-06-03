@@ -14,11 +14,11 @@ INDICATORS = [
         "entry_point": "fracta.indicators.sma:SMA",
     },
     {
-        "name": "Series",
+        "name": "Timeseries",
         "unlisted": True,
         "version": "v0.0.0",
         "description": "Series Indicator that recieves, filters, and disseminates Raw Data",
-        "entry_point": "fracta.indicators.series:Series",
+        "entry_point": "fracta.indicators.timeseries.timeseries:Timeseries",
     },
 ]
 

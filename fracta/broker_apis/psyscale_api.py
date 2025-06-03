@@ -31,8 +31,8 @@ ALPACA_RENAME_MAP = {
 class WebSocketInterface(Protocol):
     "Protocol to Define WebSocket Owners"
 
-    def open_socket(self, ticker: fta.Ticker, series: fta.indicators.Series): ...
-    def close_socket(self, series: fta.indicators.Series): ...
+    def open_socket(self, ticker: fta.Ticker, series: fta.indicators.Timeseries): ...
+    def close_socket(self, series: fta.indicators.Timeseries): ...
 
 
 class PsyscaleAPI:
@@ -124,7 +124,7 @@ class PsyscaleAPI:
         dfs = (stored_data, fetched_data)
         return pd.concat(dfs) if any(df is not None for df in dfs) else None
 
-    def open_socket(self, ticker: fta.Ticker, series: fta.indicators.Series):
+    def open_socket(self, ticker: fta.Ticker, series: fta.indicators.Timeseries):
         "Forward the Socket Request to the appropriate Data Source"
         if ticker.source is None:
             return
@@ -133,7 +133,7 @@ class PsyscaleAPI:
             self._open_sockets[series.js_id] = self.alpaca_api
             self.alpaca_api.open_socket(ticker, series)
 
-    def close_socket(self, series: fta.indicators.Series):
+    def close_socket(self, series: fta.indicators.Timeseries):
         "Forward the Socket close Request to the appropriate Data Source"
         if series.js_id not in self._open_sockets:
             return

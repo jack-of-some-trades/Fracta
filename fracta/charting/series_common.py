@@ -14,19 +14,18 @@ from typing import Any, Literal, Optional, TYPE_CHECKING
 import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype
 
-from .orm.types import JS_Color, Time
-from .util import ID_Dict
+from ..types import JS_Color, Time
+from ..util import ID_Dict
 
-from .js_cmd import JS_CMD
-from . import dataframe_ext as df_ext
-from .orm import series_data as sd
+from ..js_cmd import JS_CMD
+from . import series_dtypes as sd
 
 # pylint: disable = unused-import
 # Importing the following into Local Namespace so they can be reimported
 # directly from anything that imports series_common
-from .orm.chart_options import PriceScaleOptions
-from .orm.series_data import ArgMap, AreaArgMap, BaselineArgMap, BarArgMap, CandleArgMap
-from .orm.series_options import (
+from .chart_options import PriceScaleOptions
+from .series_dtypes import ArgMap, AreaArgMap, BaselineArgMap, BarArgMap, CandleArgMap
+from .series_options import (
     AnySeriesOptions,
     PriceFormat,
     PriceLineSource,
@@ -259,10 +258,7 @@ class SeriesCommon:
             return sd.SeriesType.Candlestick
         return series_type
 
-    def _to_transfer_dataframe_(
-        self,
-        data: df_ext.Series_DF | pd.DataFrame | pd.Series,
-    ) -> pd.DataFrame:
+    def _to_transfer_dataframe_(self, data: pd.DataFrame | pd.Series) -> pd.DataFrame:
         """
         Creates a formatted Dataframe from a Series/Series_DF/DataFrame object.
         This formatted dataframe:
@@ -272,12 +268,11 @@ class SeriesCommon:
         - Formats the timestamp as a Unix Epoch Integer (in seconds)
 
         This is the smallest form factor dataset that is optimized for transfer over a
-        multiprocessor Queue.
+        multiprocessor Queue. If at some point (past Python 3.13) after multithreading is
+        implemented, this process can be saved for the secondary thread.
         """
         # Format 'data' to a dataframe called '_df' (A reference)
-        if isinstance(data, df_ext.Series_DF):
-            _df = data.df
-        elif isinstance(data, pd.DataFrame):
+        if isinstance(data, pd.DataFrame):
             _df = data
         else:
             if not is_datetime64_any_dtype(data.index):
@@ -326,7 +321,7 @@ class SeriesCommon:
 
         return tmp_df
 
-    def set_data(self, data: df_ext.Series_DF | pd.DataFrame | pd.Series):
+    def set_data(self, data: pd.DataFrame | pd.Series):
         "Sets the Data of the Series to the given data set. All irrlevant data is ignored"
         # Set display type so data.json() only passes relevant information
         xfer_df = self._to_transfer_dataframe_(data)
@@ -338,7 +333,9 @@ class SeriesCommon:
         self.remove_all_markers()
         self.remove_all_pricelines()
 
-    def update_data(self, data: sd.AnySeriesData):
+    def update_data(
+        self, data: sd.AnySeriesData
+    ):  # TODO, Make Data Optional. function should reference DF/Series passed in set_data.
         """
         Update the Data on Screen. The data is sent to the lightweight charts API without checks.
         """
@@ -379,7 +376,7 @@ class SeriesCommon:
     def change_series_type(
         self,
         series_type: sd.SeriesType,
-        data: df_ext.Series_DF | pd.DataFrame | pd.Series,
+        data: pd.DataFrame | pd.Series,
     ):
         "Change the type of Series object that is displayed on the screen."
         # Set display type so data.json() only passes relevant information
@@ -561,7 +558,7 @@ class LineSeries(SeriesCommon):
     def apply_options(self, options: LineStyleOptions | dict):
         super().apply_options(options)
 
-    def change_series_type(self, series_type: sd.SeriesType, data: df_ext.Series_DF):
+    def change_series_type(self, series_type: sd.SeriesType, data: pd.DataFrame | pd.Series):
         """
         **Pre-defined Series Types are not type mutable.** Use SeriesCommon instead.
         Calling this function will raise an Attribute Error.
@@ -600,7 +597,7 @@ class HistogramSeries(SeriesCommon):
     def apply_options(self, options: HistogramStyleOptions | dict):
         super().apply_options(options)
 
-    def change_series_type(self, series_type: sd.SeriesType, data: df_ext.Series_DF):
+    def change_series_type(self, series_type: sd.SeriesType, data: pd.DataFrame | pd.Series):
         """
         **Pre-defined Series Types are not type mutable.** Use SeriesCommon instead.
         Calling this function will raise an Attribute Error.
@@ -639,7 +636,7 @@ class AreaSeries(SeriesCommon):
     def apply_options(self, options: AreaStyleOptions | dict):
         super().apply_options(options)
 
-    def change_series_type(self, series_type: sd.SeriesType, data: df_ext.Series_DF):
+    def change_series_type(self, series_type: sd.SeriesType, data: pd.DataFrame | pd.Series):
         """
         **Pre-defined Series Types are not type mutable.** Use SeriesCommon instead.
         Calling this function will raise an Attribute Error.
@@ -678,7 +675,7 @@ class BaselineSeries(SeriesCommon):
     def apply_options(self, options: BaselineStyleOptions | dict):
         super().apply_options(options)
 
-    def change_series_type(self, series_type: sd.SeriesType, data: df_ext.Series_DF):
+    def change_series_type(self, series_type: sd.SeriesType, data: pd.DataFrame | pd.Series):
         """
         **Pre-defined Series Types are not type mutable.** Use SeriesCommon instead.
         Calling this function will raise an Attribute Error.
@@ -717,7 +714,7 @@ class BarSeries(SeriesCommon):
     def apply_options(self, options: BarStyleOptions | dict):
         super().apply_options(options)
 
-    def change_series_type(self, series_type: sd.SeriesType, data: df_ext.Series_DF):
+    def change_series_type(self, series_type: sd.SeriesType, data: pd.DataFrame | pd.Series):
         """
         **Pre-defined Series Types are not type mutable.** Use SeriesCommon instead.
         Calling this function will raise an Attribute Error.
@@ -756,7 +753,7 @@ class CandlestickSeries(SeriesCommon):
     def apply_options(self, options: CandlestickStyleOptions | dict):
         super().apply_options(options)
 
-    def change_series_type(self, series_type: sd.SeriesType, data: df_ext.Series_DF):
+    def change_series_type(self, series_type: sd.SeriesType, data: pd.DataFrame | pd.Series):
         """
         **Pre-defined Series Types are not type mutable.** Use SeriesCommon instead.
         Calling this function will raise an Attribute Error.
@@ -795,7 +792,7 @@ class RoundedCandleSeries(SeriesCommon):
     def apply_options(self, options: RoundedCandleStyleOptions | dict):
         super().apply_options(options)
 
-    def change_series_type(self, series_type: sd.SeriesType, data: df_ext.Series_DF):
+    def change_series_type(self, series_type: sd.SeriesType, data: pd.DataFrame | pd.Series):
         """
         **Pre-defined Series Types are not type mutable.** Use SeriesCommon instead.
         Calling this function will raise an Attribute Error.
