@@ -6,7 +6,6 @@ from enum import IntEnum, auto
 import logging
 import asyncio
 import multiprocessing as mp
-from functools import partial
 from dataclasses import asdict
 from typing import TYPE_CHECKING, Callable, Literal, Optional, Protocol
 
@@ -84,7 +83,6 @@ class Window:
         *,
         daemon: bool = True,
         use_calendars: bool = True,
-        events: Optional[Events] = None,
         broker_api: Optional[APIs | BrokerAPI] = None,
         log_level: Optional[logging._Level] = None,
         options: Optional[PyWebViewOptions] = None,
@@ -114,6 +112,7 @@ class Window:
 
         if use_calendars:
             # Enable Calendars after Sub-process Launch so the module isn't loaded by that process.
+            # TODO: Always use calendars? it might be optimized enough now that it might as well be used.
             indicators.timeseries.enable_market_calendars()
 
         # Wait for PyWebview to load before continuing
@@ -124,14 +123,15 @@ class Window:
         # Begin Listening for any responses from PyWV Process
         self._queue_manager = asyncio.create_task(self._manage_queue())
 
-        # -------- Create Subobjects  -------- #
-        self.events = Events() if events is None else events
-        self.events.symbol_search.responder = partial(_symbol_search_rsp, fwd_queue=self._fwd_queue)
+        # -------- Create & Setup Standard Events  -------- #
+        self.events = Events(self)
+        indicators.timeseries.setup_window_events(self)
 
         # Using ID_List over ID_Dict so element order is mutable for PY_CMD.REORDER_CONTAINERS
         self._container_ids = util.ID_List("c")
         self.containers: list[Container] = []
 
+        # -------- Create & Setup Data Broker  -------- #
         if broker_api is None:
             self.broker_api = None
             return
@@ -288,11 +288,6 @@ class Window:
         self._fwd_queue.put((JS_CMD.UPDATE_TF_OPTS, json_dict))
 
     # endregion
-
-
-# Window Event Response Function
-def _symbol_search_rsp(items: list[Ticker], *_, fwd_queue: mp.Queue):
-    fwd_queue.put((JS_CMD.SET_SYMBOL_ITEMS, items))
 
 
 class Container:

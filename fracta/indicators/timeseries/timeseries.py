@@ -23,9 +23,9 @@ from fracta import (
     AnyBasicData,
     SingleValueData,
 )
-from fracta.indicators.timeseries.timeseries_dfs import LTF_DF, TimeseriesDF, WhitespaceDF
-from fracta.charting import series_common as sc
-from fracta.charting.indicator import (
+from .timeseries_dfs import LTF_DF, TimeseriesDF, WhitespaceDF
+from ...charting import series_common as sc
+from ...charting.indicator import (
     Indicator,
     IndicatorOptions,
     output_property,
@@ -137,9 +137,6 @@ class Timeseries(Indicator):
 
         if self.__frame_primary_src__:
             self.parent_frame.__set_displayed_series_type__(opts.series_type)
-
-        if self.events.data_request.responder is None:
-            self.events.data_request.responder = _timeseries_request_responder
 
         self.opts = opts
         self.timeframe = None
@@ -586,12 +583,6 @@ class Timeseries(Indicator):
         return pd.Series({})
 
     # endregion
-
-
-def _timeseries_request_responder(data: pd.DataFrame | list[dict[str, Any]] | None, series: Timeseries, **_):
-    "Function that responds to the data returned by an Event.data_request being emitted"
-    if data is not None:
-        series.set_data(data)
 
 
 # endregion
