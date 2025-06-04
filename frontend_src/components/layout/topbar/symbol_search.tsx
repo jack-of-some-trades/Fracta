@@ -2,7 +2,7 @@
  * Symbol Search Overlay Menu and Topbar Menu Show/Hide Toggle Button
  */
 
-import { createSignal, For, onCleanup, onMount, Setter, splitProps } from "solid-js"
+import { Accessor, createEffect, createSignal, For, onCleanup, onMount, Setter, splitProps } from "solid-js"
 import { createStore, SetStoreFunction } from "solid-js/store"
 import { ticker } from "../../../src/types"
 import { Icon, icons } from "../../icons"
@@ -64,6 +64,7 @@ export function SymbolSearchBox(){
         <SymbolSearchMenu
             id={id}
             tickers={tickers()}
+            display={display}
             setDisplay={setDisplay}
             filters={filters}
             setFilters={setFilters}
@@ -94,6 +95,7 @@ export function SymbolSearchBox(){
 
 interface search_menu_props extends Omit<overlay_div_props, "location_ref">{
     tickers:ticker[]
+    display:Accessor<boolean>,
     setDisplay:Setter<boolean>,
     replace:boolean,
     setReplace:Setter<boolean>,
@@ -109,6 +111,16 @@ const label_map = new Map<prop_key, string>([
 
 export function SymbolSearchMenu(props:search_menu_props){
     const [,overlayDivProps] = splitProps(props, ["replace", "setReplace", "tickers", "filters", "setFilters", "setDisplay"])
+
+    // Focus the Text input when the window is displayed
+    createEffect(() => {
+        if (props.display()) {
+            setTimeout( () => {
+                let el:HTMLInputElement | null = document.querySelector('input.search_input[type=text]');
+                el?.focus(); el?.select();
+            }, 100 )
+        }
+    })
 
     function fetch(symbol:ticker){
         if (window.active_frame?.timeframe)
@@ -200,7 +212,8 @@ export function SymbolSearchMenu(props:search_menu_props){
             {/***** Symbol Input *****/}
             <div class="symbol_input">
                 <input class="search_input text" type="text" onInput={()=>search(false)}
-                onkeypress={(e)=>{if(e.key === "Enter") search(true)}}/>
+                    onkeypress={(e)=>{if(e.key === "Enter") search(true)}}
+                />
                 <input class="search_submit text" type="submit" value="Submit" onClick={()=>search(true)}/>
             </div>
 
