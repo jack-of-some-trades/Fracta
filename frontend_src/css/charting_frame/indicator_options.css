@@ -23,6 +23,8 @@
     align-items: center;
     min-width: 200px;
     background-image: linear-gradient(0deg, transparent, var(--indicator-background-fade));
+    font-size: 1.2em;
+    font-weight: 600;
 }
 .indicator_opts .title_box h2 {
     margin: 8px 15px;
@@ -92,7 +94,9 @@
 .indicator_opts .group h3 {
     margin: 4px 6px;
     font-style: italic;
-    color:var(--indicator-group-text-color)
+    color:var(--indicator-group-text-color);
+    font-size: 1em;
+    font-weight: 500;
 }
 
 
@@ -207,7 +211,6 @@
 
 .indicator_opts input {
     background-color: transparent;
-    border: 1px solid var(--indicator-border-color);
     border-radius: 3px;
     margin: 3px 5px;
     padding: 2px 5px;
@@ -225,6 +228,18 @@ input[type=datetime-local]::-webkit-calendar-picker-indicator {
     filter:invert(1)
 }
 
+
+.indicator_opts input[type="range"]::-webkit-slider-thumb {
+  cursor: pointer;
+}
+
+.indicator_opts input[type="submit"] {
+  background-color: var(--accent-color);
+  color: var(--overlay-fill);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: 600;
+}
 
 
 /* ------------- Number Input ------------- */

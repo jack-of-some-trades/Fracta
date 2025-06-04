@@ -374,15 +374,15 @@ function DEFAULT_PYCHART_OPTS(){
             }
         },
         leftPriceScale: {          // ---- VisiblePriceScaleOptions ---- 
-            mode: parseInt(style.getPropertyValue("--chart-scale-mode-left")),
+            mode: parseInt(style.getPropertyValue("--chart-scale-mode-left")) ?? 1,
             // borderColor: style.getPropertyValue("--chart-axis-border"),
         },
         rightPriceScale: {          // ---- VisiblePriceScaleOptions ---- 
-            mode: parseInt(style.getPropertyValue("--chart-scale-mode-right")),
+            mode: parseInt(style.getPropertyValue("--chart-scale-mode-right")) ?? 1,
             // borderColor: style.getPropertyValue("--chart-axis-border"),
         },
         crosshair: {                // ---- Crosshair Options ---- 
-            mode: parseInt(style.getPropertyValue("--chart-xhair-mode")),
+            mode: parseInt(style.getPropertyValue("--chart-xhair-mode")) ?? 0,
         },
         kineticScroll: {            // ---- Kinetic Scroll ---- 
             touch: true
@@ -391,7 +391,7 @@ function DEFAULT_PYCHART_OPTS(){
             shiftVisibleRangeOnNewBar: true,
             allowShiftVisibleRangeOnWhitespaceReplacement: true,
             rightBarStaysOnScroll: true,
-            rightOffset: parseInt(style.getPropertyValue("--chart-right-offset"))
+            rightOffset: parseInt(style.getPropertyValue("--chart-right-offset")) ?? 20
         }
     }
     return OPTS

@@ -108,7 +108,7 @@
 
 .symbol_list {
     width: -webkit-fill-available;
-    height: calc(100% - 200px);
+    height: calc(100% - 210px);
     margin: 4px 20px;
     text-align: left;
     border: 2px solid var(--background-fill);

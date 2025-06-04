@@ -8,7 +8,7 @@
 
 const tv_chart_css_rule = (()=>{
     for (const sheet of Array.from(document.styleSheets))
-        if (sheet.href !== null)
+        if (sheet.href !== null && sheet.href.endsWith('.css'))
             for (const rule of Array.from(sheet.cssRules))
                 //@ts-ignore
                 if (rule.selectorText === '.tv-lightweight-charts')
