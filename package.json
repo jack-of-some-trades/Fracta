@@ -36,7 +36,7 @@
   "dependencies": {
     "@thisbeyond/solid-dnd": "^0.7.5",
     "draggabilly": "^3.0.0",
-    "lightweight-charts": "4.2.0",
+    "lightweight-charts": "5.0.7",
     "solid-js": "^1.8.17"
   }
 }

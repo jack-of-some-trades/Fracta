@@ -9,15 +9,16 @@ import { PrimitiveBase } from "./primitive-plugins/primitive-base";
 import { primitives } from "./primitive-plugins/primitives";
 import { Series, Series_Type, SeriesApi, SeriesBase, SeriesBase_T } from "./series-plugins/series-base";
 
-//** Key Map for Lightweight Charts MouseEvent Params: Valid only for Lightweight-Charts v4.2.0  */
+//** Key Map for Lightweight Charts MouseEvent Params: Valid only for Lightweight-Charts v5.0.7  */
 const MouseEventKeyMap: {[key:string]: keyof lwc.MouseEventParams} = {
-    Ib: 'time',
-    se: 'logical',
-    zb: 'point',
-    Eb: 'seriesData', 
-    Lb: 'hoveredSeries',
-    Nb: 'hoveredObjectId', 
-    Fb: 'sourceEvent'
+    dw: 'time',
+    Re: 'logical',
+    fw: 'point',
+    ww: 'seriesData', 
+    pw: 'paneIndex',
+    mw: 'hoveredSeries',
+    gw: 'hoveredObjectId',
+    Mw: 'sourceEvent'
 }
 
 /** The portion of a chart where things are actually drawn.
@@ -106,7 +107,7 @@ export class pane {
         })
 
         //Whitespace series to allow consistent timescale across panes that extends into the future.
-        this.whitespace_series = this.chart.addLineSeries()
+        this.whitespace_series = this.chart.addSeries(lwc.LineSeries)
         this.add_primitive_group()
         
         //Setters from the Object Tree so this pane can change the Object Tree when it is selected
@@ -132,21 +133,21 @@ export class pane {
         })
     }
 
-    /** Retrieves a Mutable Array of Series Objects in the pane in draw order : Valid only for Lightweight-Charts v4.2.0 */
-    //@ts-ignore : Stands for : chart._chartWidget._model._panes[0]._dataSources.filter(**Remove Whitespace Serieswhich is index 0**)
-    private get serieses():Series[] { return this.chart.lw.$i.kc[0].vo }
+    /** Retrieves a Mutable Array of Series Objects in the pane in draw order : Valid only for Lightweight-Charts v5.0.7 */
+    //@ts-ignore : Stands for : chart._chartWidget._model._panes[0]._dataSources
+    private get serieses():Series[] { return this.chart.Df.ts.zu[0].ul}
 
-    /** Retrieves all Series Objects (Minus the Whitespace Series) in the pane in draw order : Valid only for Lightweight-Charts v4.2.0 */
+    /** Retrieves all Series Objects (Minus the Whitespace Series) in the pane in draw order : Valid only for Lightweight-Charts v5.0.7 */
     //@ts-ignore : Stands for : chart._chartWidget._model._panes[0]._dataSources.filter(**Remove Whitespace Serieswhich is index 0**)
-    private get vis_serieses():Series[] { return this.chart.lw.$i.kc[0].vo.filter((val, ind) => ind !== 0) }
+    private get vis_serieses():Series[] { return this.chart.Df.ts.zu[0].ul.filter((val, ind) => ind !== 0) }
 
-    /** Retrieves all SeriesAPI Objects (Minus the Whitespace Series) drawn onto the pane in draw order : Valid only for Lightweight-Charts v4.2.0 */
+    /** Retrieves all SeriesAPI Objects (Minus the Whitespace Series) drawn onto the pane in draw order : Valid only for Lightweight-Charts v5.0.7 */
     //@ts-ignore : Stands for : chart._chartWidget._model._panes[0]._dataSources => chart._seriesMapReversed.get()
-    private get seriesAPIs():SeriesApi[] { return Array.from(this.vis_serieses, (series) => this.chart.Sw.get(series)) }
+    private get seriesAPIs():SeriesApi[] { return Array.from(this.vis_serieses, (series) => this.chart.bg.get(series)) }
 
     /** Get the Index of a Series as it is *applied* to the chart. This is 0 indexed and includes the whitespace series. */
     //@ts-ignore
-    get_series_index(given_series:Series):number { return this.serieses.findIndex((series)=>this.chart.Sw.get(series) === given_series)}
+    get_series_index(given_series:Series):number { return this.serieses.findIndex((series)=>this.chart.bg.get(series) === given_series)}
 
     //** Takes a normal MouseEvent and Returns the Lightweight-Charts Style Mouse Event. */
     make_event_params(e: MouseEvent): lwc.MouseEventParams<lwc.Time> {
@@ -173,15 +174,15 @@ export class pane {
 
         //@ts-ignore declare Object that will recieve the Event Params after name mapping.
         let renamedParams:lwc.MouseEventParams = {}
-        //@ts-ignore this.chart.lw.Ab Stands for Chart._chartWidget._getMouseEventParamsImpl() : Valid only for Lightweight-Charts v4.2.0
-        Object.entries(this.chart.lw.Ab(index, pt, sourceEvent)).forEach(([k,v]) => renamedParams[MouseEventKeyMap[k]] = v)
+        //@ts-ignore this.chart.lw.uw Stands for Chart._chartWidget._getMouseEventParamsImpl() : Valid only for Lightweight-Charts v5.0.7
+        Object.entries(this.chart.lw.uw(index, pt, sourceEvent)).forEach(([k,v]) => renamedParams[MouseEventKeyMap[k]] = v)
 
         return renamedParams
 
         //TODO : Update this to make hoveredSeries hit registration better. See Comment at EoF.
     }
 
-    /** Re-orderes then Re-draws the Series Objects attached to the chart : Valid only for Lightweight-Charts v4.2.0 */
+    /** Re-orderes then Re-draws the Series Objects attached to the chart : Valid only for Lightweight-Charts v5.0.7 */
     reorder_series(from:number, to:number, adjust_by_1 = true){
         // Adjust for negative indecies
         if (from < 0) from = this.serieses.length + from
@@ -192,13 +193,13 @@ export class pane {
         if (adjust_by_1) {from += 1; to += 1;}
 
         this.serieses.splice(to, 0, ...this.serieses.splice(from, 1))
-        //@ts-ignore : Zi === Z-index. Re-setting Each so that they are drawn in the new order of the array
-        this.serieses.forEach((series, i) => series.Zi = i)
+        //@ts-ignore : rs === Z-index. Re-setting Each so that they are drawn in the new order of the array
+        this.serieses.forEach((series, i) => series.rs = i)
 
         //@ts-ignore : Stands for : chart._chartWidget._model._panes[0]._cachedDataSources
-        this.chart.lw.$i.kc[0].po = null
+        this.chart.Df.ts.zu[0].dl = null
         //@ts-ignore : Stands for : chart._chartWidget._model.lightUpdate()
-        this.chart.lw.$i.$h()
+        this.chart.Df.ts.ar()
 
         //Make sure Object Tree Reflects the series Reorder
         this.setObjTreeIds(
@@ -350,6 +351,26 @@ function optionsSplice(opts:any, group:string, object:string, signal:any){
  * a Lightweight-Charts MouseEventParam object so it only gets invoked when needed to save on computation. This has the added benefit
  * that anything that wants to subscribe to a native lwc CrosshairMove, Click, or DblClick can get the hovered series as needed.
  */
+
+
+/** Lightweight Charts v5.0.7 Minified Mappings
+ * chartingframe.chart === lwc.ChariApi Object
+ * 
+ * this.chart.Mg === ChartApi._seriesMap: Map<SeriesApi, Series>
+ * this.chart.bg === ChartApi._seriesMapReversed: Map<Series, SeriesApi>
+ * this.chart.zu === ChartApi._panes: WeakMap<Pane, PaneApi>
+ * 
+ * this.chart.Df === ChartApi._chartWidget: ChartWidget
+ * this.chart.Df === ChartApi._chartWidget: ChartWidget
+ * this.chart.Df.ts === ChartApi._chartWidget._model: ChartModel
+ * this.chart.Df.ts.ar() === ChartApi._chartWidget._model.lightUpdate()
+ * this.chart.Df.ts.lu[] === ChartApi._chartWidget._model._serieses[]: Series[]
+ * this.chart.Df.ts.zu[] === ChartApi._chartWidget._model._panes[]: Pane[]
+ * this.chart.Df.ts.zu[].ul[] === ChartApi._chartWidget._model._panes[]._dataSources[]: IPriceDataSource[]
+ * this.chart.Df.ts.zu[].dl[] === ChartApi._chartWidget._model._panes[]._cachedOrderedSources[]: IPriceDataSource[]
+ * this.chart.Df.ts.zu[].ul[].rs === ChartApi._chartWidget._model._panes[]._dataSources[]._zOrder: number
+ * this.chart.Df.uw() === ChartApi._chartWidget._getMouseEventParamsImpl()
+ */  
 
 
 /* Default TimeChart Options. It's a Function so the style is Evaluated at pane construction */

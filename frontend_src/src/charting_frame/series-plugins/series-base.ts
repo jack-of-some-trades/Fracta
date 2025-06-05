@@ -119,8 +119,9 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
     _name: string | undefined
     s_type: Series_Type
 
-    _markers = new Map<string, lwc.SeriesMarker<lwc.Time>>()
-    _pricelines = new Map<string, lwc.IPriceLine>()
+    _markers: Map<string, lwc.SeriesMarker<lwc.Time>> | undefined
+    _markers_plugin: lwc.ISeriesMarkersPluginApi<lwc.Time> | undefined
+    _pricelines: Map<string, lwc.IPriceLine> | undefined
 
     //Solid-JS signals so UI can be updated when Primitives are added/removed
     primitiveIds: Accessor<string[]>
@@ -142,8 +143,6 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
         this._pane = _pane
         this._series = this._create_series(_type)
 
-        this._markers = new Map<string, lwc.SeriesMarker<lwc.Time>>()
-
         const sig = createSignal<string[]>([])
         this.primitiveIds = sig[0]; this.setPrimitiveIds = sig[1]; 
 
@@ -157,25 +156,25 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
         switch (series_type) {
             // ---- Base Series Types ---- //
             case (Series_Type.LINE):
-                return this._pane.chart.addLineSeries()
+                return this._pane.chart.addSeries(lwc.LineSeries)
             case (Series_Type.AREA):
-                return this._pane.chart.addAreaSeries()
+                return this._pane.chart.addSeries(lwc.AreaSeries)
             case (Series_Type.HISTOGRAM):
-                return this._pane.chart.addHistogramSeries()
+                return this._pane.chart.addSeries(lwc.HistogramSeries)
             case (Series_Type.BASELINE):
-                return this._pane.chart.addBaselineSeries()
+                return this._pane.chart.addSeries(lwc.BaselineSeries)
             case (Series_Type.BAR):
-                return this._pane.chart.addBarSeries()
+                return this._pane.chart.addSeries(lwc.BarSeries)
             case (Series_Type.OHLC):
             case (Series_Type.CANDLESTICK):
-                return this._pane.chart.addCandlestickSeries()
+                return this._pane.chart.addSeries(lwc.CandlestickSeries)
             // ---- Custom Series Types ---- //
             case (Series_Type.ROUNDED_CANDLE):
                 //Ideally custom series objects will get baked directly into the TS Code like this
                 //So accomodations don't need to be made on the Python side
                 return this._pane.chart.addCustomSeries(new RoundedCandleSeriesImpl())
             default: //Catch-all, primarily reached by WhitespaceSeries'
-                return this._pane.chart.addLineSeries()
+                return this._pane.chart.addSeries(lwc.LineSeries)
         }
     }
 
@@ -185,6 +184,96 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
         display_name += this._name? this._name : SERIES_NAME_MAP.get(this.s_type)
         return display_name
     }
+
+    //#region ---- ---- Markers Functions ---- ----
+
+    get markers(): Map<string, lwc.SeriesMarker<lwc.Time>>{
+        if (this._markers === undefined)
+            this._markers = new Map<string, lwc.SeriesMarker<lwc.Time>>()
+        return this._markers
+    } 
+
+    get markers_plugin(): lwc.ISeriesMarkersPluginApi<lwc.Time>{
+        if (this._markers_plugin === undefined)
+            this._markers_plugin = lwc.createSeriesMarkers(this._series, [])
+
+        return this._markers_plugin
+    } 
+
+    set_markers_options(opts: lwc.DeepPartial<lwc.SeriesMarkersOptions>){
+        this.markers_plugin.applyOptions?.(opts)
+    }
+    
+    private _updateMarkersPlugin(){
+        this.markers_plugin.setMarkers(Array.from(this.markers.values()))
+    }
+    
+    setMarkers(markers:{[key:string]: lwc.SeriesMarker<lwc.Time>}){
+        delete this._markers
+        this._markers = new Map<string, lwc.SeriesMarker<lwc.Time>>(Object.entries(markers))
+        this._updateMarkersPlugin() 
+    }
+
+    updateMarker(mark_id :string, mark: lwc.SeriesMarker<lwc.Time>){ 
+        this.markers.set(mark_id, mark)
+        this._updateMarkersPlugin() 
+    }
+
+    removeMarker(mark_id :string){ 
+        if (this._markers === undefined) return
+        if (this.markers.delete(mark_id)) this._updateMarkersPlugin()
+    }
+
+    filterMarkers(_ids: string[]){
+        if (this._markers === undefined) return
+        _ids.forEach((id) => this.markers.delete(id))
+        this._updateMarkersPlugin()
+    }
+
+    removeAllMarkers(){
+        delete this._markers
+        this._markers = new Map<string, lwc.SeriesMarker<lwc.Time>>()
+        this._updateMarkersPlugin()
+    }
+
+    //#endregion
+
+    //#region ---- ---- Priceline Functions ---- ----
+
+    get pricelines():Map<string, lwc.IPriceLine> {
+        if (this._pricelines == undefined)
+            this._pricelines = new Map<string, lwc.IPriceLine>()
+        return this._pricelines
+    }
+
+    createPriceLine(id:string, options: lwc.CreatePriceLineOptions) {
+        this.pricelines.set(id, this._series.createPriceLine(options))
+    }
+
+    removePriceLine(line_id:string){
+        let line = this.pricelines.get(line_id)
+        if (line !== undefined){
+            this._series.removePriceLine(line)
+            this.pricelines.delete(line_id)
+        }
+    }
+
+    updatePriceLine(line_id:string, options: lwc.CreatePriceLineOptions){
+        let line = this.pricelines.get(line_id)
+        if (line !== undefined) line.applyOptions(options)
+    }
+
+    filterPriceLines(_ids: string[]){
+        _ids.forEach(this.removePriceLine.bind(this))
+    }
+    
+    removeAllPriceLines(){
+        if (this._pricelines == undefined) return
+        //@ts-ignore: _series.Jn.bh === seriesAPI._series.CustomPriceLines[] array for Lightweight-Charts v5.0.7
+        this._series.Jn.bh = []
+        delete this._pricelines
+    }
+    //#endregion
 
     reorderPrimitives(from:number, to:number){ 
         this.primitiveWrapperArray.splice(to, 0, ...this.primitiveWrapperArray.splice(from, 1))
@@ -219,11 +308,7 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
             this._pane.chart.timeScale().setVisibleRange(current_range)
     }
 
-    // TODO: Implement
-    move_to_pane(pane:pane){}
-
     // #region -------- lightweight-chart ISeriesAPI functions --------
-
     priceScale(): lwc.IPriceScaleApi {return this._series.priceScale()}
 
     applyOptions(options: SeriesPartialOptionsMap_EXT[T]) {this._series.applyOptions(options)}
@@ -235,52 +320,10 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
     update(bar: SeriesDataTypeMap_EXT[T]) {this._series.update(bar)}
     setData(data: SeriesDataTypeMap_EXT[T][]) {this._series.setData(data)}
 
-    markers(): lwc.SeriesMarker<lwc.Time>[] {return Array.from(this._markers.values())}
-    // setMarkers() OBE by inclusion of Markers Map.
-    // setMarkers(data: lwc.SeriesMarker<lwc.Time>[]){this._series.setMarkers(data)}
-    private _updateMarkers(){this._series.setMarkers(this.markers())}
-    updateMarker(mark_id :string, mark: lwc.SeriesMarker<lwc.Time>){ 
-        this._markers.set(mark_id, mark)
-        this._updateMarkers() 
-    }
-    removeMarker(mark_id :string){ 
-        if (this._markers.delete(mark_id)) this._updateMarkers()
-    }
-    filterMarkers(_ids: string[]){
-        _ids.forEach((id) => this._markers.delete(id))
-        this._updateMarkers()
-    }
-    removeAllMarkers(){
-        this._markers = new Map<string, lwc.SeriesMarker<lwc.Time>>()
-        this._updateMarkers()
-    }
-    
-    priceLines():lwc.IPriceLine[] {return Array.from(this._pricelines.values())}
-    removePriceLine(line_id:string){
-        let line = this._pricelines.get(line_id)
-        if (line !== undefined){
-            this._series.removePriceLine(line)
-            this._pricelines.delete(line_id)
-        }
-    }
-    updatePriceLine(line_id:string, options: lwc.CreatePriceLineOptions){
-        let line = this._pricelines.get(line_id)
-        if (line !== undefined) line.applyOptions(options)
-    }
-    removeAllPriceLines(){
-        //@ts-ignore: _series.Ls.Il === seriesAPI._series.CustomPriceLines[] array for Lightweight-Charts v4.2.0
-        this._series.Ls.Il = []
-        this._pricelines = new Map<string, lwc.IPriceLine>()
-    }
-    createPriceLine(id:string, options: lwc.CreatePriceLineOptions) {
-        this._pricelines.set(id, this._series.createPriceLine(options))
-    }
-    filterPriceLines(_ids: string[]){ _ids.forEach(this.removePriceLine.bind(this)) }
-
-    //@ts-ignore: _series.Ls.jl === seriesAPI._series._primitives array for Lightweight-Charts v4.2.0
-    get primitiveWrapperArray(): SeriesPrimitiveWrapper[] { return this._series.Ls.jl }
-    //@ts-ignore: _series.Ls.jl[].Dl === seriesAPI._series._primitives[].PrimitiveBase Array for Lightweight-Charts v4.2.0
-    get primitives(): PrimitiveBase[] { return Array.from(this.primitiveWrapperArray, (wrapper) => wrapper.Dl)}
+    //@ts-ignore: _series.Jn.kh === seriesAPI._series._primitives[] for Lightweight-Charts v5.0.7
+    get primitiveWrapperArray(): SeriesPrimitiveWrapper[] { return this._series.Jn.kh }
+    //@ts-ignore: _series.Jn.kh[].ah === seriesAPI._series._primitives[].PrimitiveBase for Lightweight-Charts v5.0.7
+    get primitives(): PrimitiveBase[] { return Array.from(this.primitiveWrapperArray, (wrapper) => wrapper.ah)}
 
     attachPrimitive(primitive: PrimitiveBase) {
         this._series.attachPrimitive(primitive)
@@ -312,13 +355,13 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
  * To reorder Series (after applying them to the screen) you need to change the _zOrder:number 
  * within some/all of the series applied to the lwc 'Pane' (not this lib's pane) which displays 
  * the series objects. To get a reference to this pane's series objects call 
- * chart._chartWidget._model._panes[0]._dataSources: (chart.lw.$i.kc[0].vo)** for lwc v4.2.0
+ * chart._chartWidget._model._panes[0]._dataSources[]: (chart.Df.ts.zu[].ul[])** for lwc v5.0.7
  * 
- * With this array, you can set _dataSources[i]._zOrder to the desired value. (chart.lw.$i.kc[0].vo[i].Zi)**
+ * With this array, you can set _dataSources[i]._zOrder to the desired value. (chart.Df.ts.zu[0].ul[i].rs)**
  * The _zOrder value can be a duplicate, negative, and have gaps between other series values.
- * From here the pane._cachedOrderedSources needs to be set to null (chart.lw.$i.kc[0].po = null)** 
- * Then a redraw of the chart invoked. chart._chartWidget._model.lightUpdate() ( chart.lw.$i.$h() )**
+ * From here the pane._cachedOrderedSources needs to be set to null (chart.Df.ts.zu[0].dl = null)** 
+ * Then a redraw of the chart invoked. chart._chartWidget._model.lightUpdate() ( chart.Df.ts.ar() )**
  * 
  * To Re-order primitives you need to re-order the series' _primitives array That's Part of the Series Object.
- * chart._chartWidget._model._serieses[i]._primitives (chart.lw.$i.yc[i].jl)
+ * chart._chartWidget._model._serieses[i]._primitives (chart.Df.ts.Lu[i].kh)
  */
