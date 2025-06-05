@@ -6,6 +6,7 @@ from inspect import getmembers, ismethod
 import multiprocessing as mp
 from multiprocessing.synchronize import Event as mp_EventClass
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Callable, Optional, Protocol
 from abc import ABC, abstractmethod
 
@@ -17,8 +18,8 @@ from .py_cmd import PY_CMD
 from .types import Ticker, TF
 from .util import is_dunder
 
-file_dir = dirname(abspath(__file__))
-logger = logging.getLogger("fracta_log")
+INDEX_HTML_PATH = Path(dirname(abspath(__file__))) / "frontend" / "index.html"
+log = logging.getLogger("fracta_log")
 
 # @pylint: disable=consider-iterating-dictionary missing-function-docstring invalid-name
 
@@ -86,7 +87,7 @@ class js_api:
                 )
             )
         except ValueError:
-            logger.warning("Couldn't Change Series_Type, '%s' isn't a valid series", series_type)
+            log.warning("Couldn't Change Series_Type, '%s' isn't a valid series", series_type)
 
     def data_request(self, c_id: str, f_id: str, ticker: dict[str, str], tf_str: str):
         try:
@@ -100,7 +101,7 @@ class js_api:
                 )
             )
         except ValueError as e:
-            logger.warning(e)
+            log.warning(e)
 
     def symbol_search(
         self,
@@ -209,14 +210,14 @@ class View(ABC):
             # Would be nice to have pywebview run in an asyncio Thread
             msg = self.fwd_queue.get()
             cmd, *args = msg
-            logger.debug("Received CMD: %s, args: %s", cmd.name, args)
+            log.debug("Received CMD: %s, args: %s", cmd.name, args)
 
             try:
                 # Lookup JS Command
                 cmd_str = VIEW_CMD_ROLODEX[cmd](*args)
             except TypeError as e:
                 arg_list = [type(arg) for arg in args]
-                logger.error(
+                log.error(
                     "Command:%s: Given %s \n\tError msg: %s",
                     JS_CMD(cmd).name,
                     arg_list,
@@ -267,9 +268,9 @@ class PyWv(View):
         super().__init__(mp_hooks, run_script=self._handle_eval_js)
 
         if log_level is not None:
-            logger.setLevel(log_level)
+            log.setLevel(log_level)
         elif debug:
-            logger.setLevel(logging.DEBUG)
+            log.setLevel(logging.DEBUG)
         # webview.settings["OPEN_DEVTOOLS_IN_DEBUG"] = False
 
         # assign default js_api if it was not provided
@@ -301,7 +302,7 @@ class PyWv(View):
 
         self.pyweb_window = webview.create_window(
             title=title,
-            url=file_dir + "/frontend/index.html",
+            url=INDEX_HTML_PATH.as_posix(),
             js_api=self.api,
             **kwargs,
         )
@@ -323,7 +324,7 @@ class PyWv(View):
             # runscript for pywebview is the evaluate_js() function
             self.pyweb_window.evaluate_js(cmd, callback=promise)
         except JavascriptException as e:
-            logger.error("JS Exception: %s\n\t\t\t\tscript: %s", e.args[0]["message"], cmd)
+            log.error("JS Exception: %s\n\t\t\t\tscript: %s", e.args[0]["message"], cmd)
 
     def _assign_callbacks(self):
         "Read all the functions that exist in the api and expose non-dunder methods to javascript"
@@ -367,7 +368,7 @@ class PyWv(View):
             file_handle = open(filepath, encoding="UTF-8")
             self.pyweb_window.load_css(file_handle.read())
         except FileNotFoundError:
-            logger.error("Cannot find/load .css file. Ensure filepath is absolute.")
+            log.error("Cannot find/load .css file. Ensure filepath is absolute.")
         finally:
             file_handle.close()
 
