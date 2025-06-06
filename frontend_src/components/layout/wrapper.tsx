@@ -20,6 +20,7 @@ import { WidgetBar, WidgetPanel } from './widgetbar'
 const MARGIN = 5
 const TOP_HEIGHT = 38
 const TITLE_HEIGHT = 38
+const CENTER_PADDING = 2
 
 const MIN_WIDGET_PANEL_WIDTH = 156
 const MAX_WIDGET_PANEL_WIDTH = 468
@@ -45,7 +46,7 @@ interface layout_struct {
 
 //Any value of -1px is dynamically set upon resize event
 const layout_default:layout_struct = {
-    center:{width:'-1px', height:'-1px', top:`${TITLE_HEIGHT + TOP_HEIGHT + MARGIN}px`, left:`${TOOLBAR_WIDTH + MARGIN}px`},
+    center:{width:'-1px', height:'-1px', top:`${TITLE_HEIGHT + TOP_HEIGHT + MARGIN + CENTER_PADDING}px`, left:`${TOOLBAR_WIDTH + MARGIN + CENTER_PADDING}px`},
     titlebar:{width:'100vw', height:'38px', top:'0px', left:'0px'},
     topbar:{display:'flex', width:'100vw', height:'38px', top:`${TITLE_HEIGHT}px`, left:'0px'},
     toolbar:{display:'flex', width:`${TOOLBAR_WIDTH}px`, height:'-1px', top:`${TITLE_HEIGHT + TOP_HEIGHT + MARGIN}px`, left:'0px'},
@@ -159,8 +160,8 @@ function resize(width:number, height:number, layout:layout_struct, set_layout:Se
     set_layout('widgetbar', 'height', `${side_bar_height}px`)
     set_layout('widgetpanel', 'height', `${side_bar_height}px`)
     set_layout('widgetpanel', 'width', `${widgetPanelWidth}px`)
-    set_layout('center', 'height', `${center_height}px`)
-    set_layout('center', 'width', `${center_width}px`)
+    set_layout('center', 'height', `${center_height - 2 * CENTER_PADDING}px`)
+    set_layout('center', 'width', `${center_width - 2 * CENTER_PADDING}px`)
     set_layout('utilbar', 'width', `${center_width}px`)
 
     // Resize Active Display Panels, A DOMRect is given so that the dimensions are accurate. 
@@ -178,7 +179,7 @@ function resize(width:number, height:number, layout:layout_struct, set_layout:Se
 function show_section_unbound(set_layout:SetStoreFunction<layout_struct>, section: LAYOUT_SECTIONS) {
     switch (section) {
         case (LAYOUT_SECTIONS.TOOL_BAR):
-            set_layout('center', 'left', `${TOOLBAR_WIDTH + MARGIN}px`)
+            set_layout('center', 'left', `${TOOLBAR_WIDTH + MARGIN + CENTER_PADDING}px`)
             set_layout('utilbar', 'left', `${TOOLBAR_WIDTH + MARGIN}px`)
             set_layout('toolbar', 'display', 'flex')
             break;
@@ -191,7 +192,7 @@ function show_section_unbound(set_layout:SetStoreFunction<layout_struct>, sectio
         case (LAYOUT_SECTIONS.TOP_BAR):
             set_layout('toolbar', 'top', `${TITLE_HEIGHT + TOP_HEIGHT + MARGIN}px`)
             set_layout('widgetbar', 'top', `${TITLE_HEIGHT + TOP_HEIGHT + MARGIN}px`)
-            set_layout('center', 'top', `${TITLE_HEIGHT + TOP_HEIGHT + MARGIN}px`)
+            set_layout('center', 'top', `${TITLE_HEIGHT + TOP_HEIGHT + MARGIN + CENTER_PADDING}px`)
             set_layout('topbar', 'display', 'flex')
             break;
         case (LAYOUT_SECTIONS.UTIL_BAR):
@@ -204,7 +205,7 @@ function show_section_unbound(set_layout:SetStoreFunction<layout_struct>, sectio
 function hide_section_unbound(set_layout:SetStoreFunction<layout_struct>, section: LAYOUT_SECTIONS) {
     switch (section) {
         case (LAYOUT_SECTIONS.TOOL_BAR):
-            set_layout('center', 'left', `0px`)
+            set_layout('center', 'left', `${CENTER_PADDING}px`)
             set_layout('utilbar', 'left', `0px`)
             set_layout('toolbar', 'display', 'none')
             break;
@@ -218,7 +219,7 @@ function hide_section_unbound(set_layout:SetStoreFunction<layout_struct>, sectio
         case (LAYOUT_SECTIONS.TOP_BAR):
             set_layout('toolbar', 'top', `${TITLE_HEIGHT}px`)
             set_layout('widgetbar', 'top', `${TITLE_HEIGHT}px`)
-            set_layout('center', 'top', `${TITLE_HEIGHT}px`)
+            set_layout('center', 'top', `${TITLE_HEIGHT + CENTER_PADDING}px`)
             set_layout('topbar', 'display', 'none')
             break;
         case (LAYOUT_SECTIONS.UTIL_BAR):
