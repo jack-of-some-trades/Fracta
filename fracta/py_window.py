@@ -387,25 +387,6 @@ class Frame(ABC):
     def __del__(self):
         "Ensure Clean up of all interally created objects."
 
-    # region ------------- Dunder Control Functions ------------- #
-
-    # Little bit awkward that these exist on the Base Class an not on just the Charting Frames
-    # This is because these are displayed by the window so all frames should define them
-
-    def __set_displayed_symbol__(self, symbol: Ticker):
-        "*Does not change underlying data Symbol*"
-        self._fwd_queue.put((JS_CMD.SET_FRAME_SYMBOL, self._js_id, symbol))
-
-    def __set_displayed_timeframe__(self, timeframe: TF):
-        "*Does not change underlying data TF*"
-        self._fwd_queue.put((JS_CMD.SET_FRAME_TIMEFRAME, self._js_id, timeframe))
-
-    def __set_displayed_series_type__(self, series_type: "SeriesType"):
-        "*Does not change underlying data Type*"
-        self._fwd_queue.put((JS_CMD.SET_FRAME_SERIES_TYPE, self._js_id, series_type))
-
-    # endregion
-
 
 # EoF Imports to prevent an import error.
 # Future_Annotations Silence the Typing errors that would occur above.

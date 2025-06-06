@@ -28,14 +28,10 @@ class Primitive(metaclass=ABCMeta):
         parent: "Indicator",  # TODO: Change to series?? or Change to Frame??
         args: dict[str, Any],
         js_id: Optional[str] = None,
-        display_pane_id: Optional[str] = None,  # TODO: Make OBE?
     ) -> None:
 
         # Make _primitives a Weakref since this is a child obj.
         self._parent_primitives = ref(parent._primitives)
-
-        if display_pane_id is None:
-            display_pane_id = parent._ids[0]
 
         # TODO: Scratch out parent._primitves and make it parent.parent_frame._primitves &
         # Then create a copy in parent._primitives? it would ensure distict Ids.
@@ -44,7 +40,7 @@ class Primitive(metaclass=ABCMeta):
         else:
             self._js_id = parent._primitives.affix_id(js_id, self)
 
-        self._ids = display_pane_id, parent.js_id, self._js_id
+        self._ids = parent.js_id, self._js_id
         self._fwd_queue = parent._fwd_queue
 
         self._fwd_queue.put((JS_CMD.ADD_IND_PRIMITIVE, *self._ids, self.__class__.__name__, args))

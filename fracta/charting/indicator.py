@@ -377,22 +377,11 @@ class Indicator(metaclass=IndicatorMeta):
     __loaded_indicators__: dict[str, "type[Indicator]"] = {}
     __registered_indicators__: dict[str, IndicatorPackage] = {}
 
-    def __init__(
-        self,
-        parent: "win.ChartingFrame | Indicator",
-        *,
-        display_name: str = "",
-        js_id: Optional[str] = None,
-        display_pane_id: Optional[str] = None,
-    ) -> None:
+    def __init__(self, parent: "win.ChartingFrame | Indicator", *, display_name: str = "", js_id: Optional[str] = None):
         if isinstance(parent, win.ChartingFrame):
             self.parent_frame = parent
         else:
             self.parent_frame = parent.parent_frame
-
-        if display_pane_id is None:
-            display_pane_id = self.parent_frame.main_pane._js_id
-        self.display_pane_id = display_pane_id
 
         if js_id is None:
             self._js_id = self.parent_frame.indicators.generate_id(self)
@@ -437,7 +426,6 @@ class Indicator(metaclass=IndicatorMeta):
             (
                 JS_CMD.CREATE_INDICATOR,
                 *self._ids,
-                self.display_pane_id,
                 self.__exposed_outputs__,
                 self.cls_name,
                 display_name,

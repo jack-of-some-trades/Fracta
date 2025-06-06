@@ -2,8 +2,7 @@ import { Accessor, createSignal, Setter, Signal } from "solid-js";
 import { createStore, SetStoreFunction } from "solid-js/store";
 import { IndicatorOpts } from "../../components/charting_frame/indicator_options";
 import { OverlayCTX } from "../../components/layout/overlay_manager";
-import { data_src } from "./charting_frame";
-import { pane } from "./pane";
+import { chart_frame } from "./charting_frame";
 import { PrimitiveBase } from "./primitive-plugins/primitive-base";
 import { primitives } from "./primitive-plugins/primitives";
 import * as s from "./series-plugins/series-base";
@@ -12,16 +11,17 @@ export class indicator {
     id: string
     type: string
     name: string
-    private pane: pane
+    private frame: chart_frame
+    private _pane_index: number
 
     objVisibility: Signal<boolean>
     labelHtml: Accessor<string | undefined>
     setLabelHtml: Setter<string | undefined>
 
+    outputs:{[key:string]:string}
     menu_id: string | undefined
     menu_struct: object | undefined
     setOptions: SetStoreFunction<object> | undefined
-    private sources: Accessor<data_src[]>
 
     menuVisibility: Accessor<boolean> | undefined
     setMenuVisibility: Setter<boolean> | undefined
@@ -30,12 +30,13 @@ export class indicator {
     private visiblity = new Map<string, boolean>()
     private primitives = new Map<string, PrimitiveBase>()
 
-    constructor(id: string, type: string, name: string, sources: Accessor<data_src[]>, pane: pane) {
+    constructor(id: string, type: string, name: string, outputs: {[key:string]:string}, frame: chart_frame) {
         this.id = id
-        this.name = name
-        this.pane = pane
         this.type = type
-        this.sources = sources
+        this.name = name
+        this.frame = frame
+        this.outputs = outputs
+        this._pane_index = 0
 
         const objVisibility = createSignal<boolean>(true)
         this.objVisibility = objVisibility
@@ -45,13 +46,13 @@ export class indicator {
         this.labelHtml = labelHtml[0]
         this.setLabelHtml = labelHtml[1]
 
-        this.pane.attach_indicator_to_legend(this)
+        // this.frame.attach_indicator_to_legend(this)
     }
 
     setLabel(label:string){this.setLabelHtml(label !== ""? label : undefined)}
 
     // TODO: Implement
-    move_to_pane(pane:pane){}
+    move_to_pane(pane_index:number){}
 
     delete() {
         //Clear All Sub-objects
@@ -59,10 +60,10 @@ export class indicator {
             ser.remove()
         })
         this.primitives.forEach((prim, key) => {
-            this.pane.whitespace_series.detachPrimitive(prim)
+            this.frame.whitespace_series.detachPrimitive(prim)
         })
         //Remove from the pane that is currently displaying the indicator
-        this.pane.detach_indicator_from_legend(this)
+        // this.frame.detach_indicator_from_legend(this)
     }
 
     setVisibility(arg:boolean){
@@ -87,7 +88,7 @@ export class indicator {
     //only encompassed being called from python, not from within JS.
 
     protected add_series(_id: string, _type: s.Series_Type, _name:string|undefined = undefined) {
-        this.series.set(_id, new s.SeriesBase(_id, this.id, _name, this.name !== "" ? this.name : this.type, _type, this.pane))
+        this.series.set(_id, new s.SeriesBase(_id, this.id, _name, this.name !== "" ? this.name : this.type, _type, this.frame.chart))
     }
 
     protected remove_series(_id: string) {
@@ -104,14 +105,14 @@ export class indicator {
         let new_obj = new primitive_type(this.id + _id, params)
 
         this.primitives.set(_id, new_obj)
-        this.pane.whitespace_series.attachPrimitive(new_obj)
+        this.frame.whitespace_series.attachPrimitive(new_obj)
     }
 
     protected remove_primitive(_id: string) {
         let _obj = this.primitives.get(_id)
         if (_obj === undefined) return
 
-        this.pane.whitespace_series.detachPrimitive(_obj) 
+        this.frame.whitespace_series.detachPrimitive(_obj) 
         this.primitives.delete(_id)
     }
     
@@ -140,7 +141,7 @@ export class indicator {
         const [options, setOptions] = createStore<object>(options_in)
         this.setOptions = setOptions
         this.menu_struct = menu_struct
-        this.menu_id = `${this.pane.id}_${this.id}_options`
+        this.menu_id = `${this.frame.id}_${this.id}_options`
 
         //See EoF for Explanation of this second AttachOverlay Call.
         OverlayCTX().attachOverlay(this.menu_id, undefined, menuVisibility)
@@ -152,10 +153,9 @@ export class indicator {
                 options: options,
                 menu_struct: this.menu_struct,
                 close_menu: () => menuVisibility[1](false),
-                sources: this.sources,
 
-                container_id: this.pane.id.substring(0,6),
-                frame_id: this.pane.id.substring(0,13),
+                container_id: this.frame.id.substring(0,6),
+                frame_id: this.frame.id.substring(0,13),
                 indicator_id: this.id
             }),
             menuVisibility

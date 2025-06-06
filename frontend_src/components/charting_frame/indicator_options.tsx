@@ -3,8 +3,7 @@
  * The Menu_struct that is generated on Python Sub-class initilization is decomposed here to 
  * generate the UI Menu that allows manipulation of Indicator Input Variables.
  */
-import { Accessor, createSignal, For, Match, Show, splitProps, Switch } from "solid-js"
-import { data_src } from "../../src/charting_frame/charting_frame"
+import { createSignal, For, Match, Show, splitProps, Switch } from "solid-js"
 import { indicator } from "../../src/charting_frame/indicator"
 import { ColorInput } from "../color_picker"
 import { Icon, icons, TextIcon } from "../icons"
@@ -34,7 +33,6 @@ interface indicator_option_props extends Omit<overlay_div_props, "location_ref" 
 
     menu_struct: object
     options: options_obj
-    sources: Accessor<data_src[]>
     container_id:string
     frame_id:string
     indicator_id:string
@@ -47,7 +45,7 @@ export function IndicatorOpts(props:indicator_option_props){
     const StyleFormProps = {
         series:props.parent_ind.series, 
     }
-    const [InputFormProps,] = splitProps(props, ['id', 'parent_ind', 'menu_struct', 'options', 'sources', 'container_id', 'frame_id', 'indicator_id', 'parent_ind'])
+    const [InputFormProps,] = splitProps(props, ['id', 'parent_ind', 'menu_struct', 'options', 'container_id', 'frame_id', 'indicator_id', 'parent_ind'])
     
     return (
         <OverlayDiv
@@ -89,13 +87,12 @@ interface input_form_props {
     frame_id: string
     indicator_id: string
     parent_ind: indicator
-    sources: Accessor<data_src[]>
     options: options_obj
 }
 
 /** Form to wrap around all of the generated options inputs */
 function InputForm(props:input_form_props){
-    const [passDown,] = splitProps(props, ['sources', 'options', 'parent_ind', 'indicator_id'])
+    const [passDown,] = splitProps(props, ['options', 'parent_ind', 'indicator_id'])
 
     let form = document.createElement('form')
     const submit = () => form.requestSubmit()
@@ -167,10 +164,9 @@ interface section_props {
     options: options_obj
     indicator_id:string,
     submit: () => void,
-    sources: Accessor<data_src[]>
 }
 function Group(props:section_props){
-    const [passDown,] = splitProps(props, ["sources", "options", "indicator_id", "submit"])
+    const [passDown,] = splitProps(props, ["options", "indicator_id", "submit"])
     return  (
         <div class="group">
             <h3 innerText={props.title}/>
@@ -187,7 +183,7 @@ function Group(props:section_props){
     )
 }
 function Inline(props:section_props){
-    const [passDown,] = splitProps(props, ["sources", "options", "indicator_id", "submit"])
+    const [passDown,] = splitProps(props, ["options", "indicator_id", "submit"])
     return  (
         <div class="inline">
             <For each={Object.entries(props.params)}>{([key, [type, params]]) => 
@@ -208,7 +204,6 @@ interface input_props {
     params:input_params, 
     options:options_obj,
     submit: () => void,
-    sources: Accessor<data_src[]>
 }
 //The following interface is a catch all for anything the Indicator Options 
 //Metaclass _parse_arg[_param] functions throw into the menu_struct for each argument
@@ -354,7 +349,7 @@ function SourceInput(props: input_props){
             attr:type="source" 
             onInput={props.params.autosend? props.submit: undefined}
         >
-            <For each={props.sources()}>{({indicator, function_name, source_type}) => {
+            {/* <For each={props.sources()}>{({indicator, function_name, source_type}) => {
                 if (props.indicator_id === indicator.id)
                     return // Skip Sources from Self
                 else if (
@@ -372,7 +367,7 @@ function SourceInput(props: input_props){
                     )
                 }
             }
-            }</For>
+            }</For> */}
         </select>
         <Icon icon={icons.menu_arrow_ns}/>
     </span>

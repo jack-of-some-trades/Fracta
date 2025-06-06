@@ -80,12 +80,6 @@ class JS_CMD(IntEnum):
     DELETE_INDICATOR = auto()
 
     # Pane Commands
-    ADD_PRIMITIVE = auto()
-    REMOVE_PRIMITIVE = auto()
-    UPDATE_PRIMITIVE = auto()
-    ADD_IND_PRIMITIVE = auto()
-    REMOVE_IND_PRIMITIVE = auto()
-    UPDATE_IND_PRIMITIVE = auto()
 
     # Indicator Commands
     ADD_SERIES = auto()
@@ -96,6 +90,9 @@ class JS_CMD(IntEnum):
     UPDATE_PRICE_SCALE_OPTS = auto()
     UPDATE_IND_PKG = auto()
     POPULATE_IND_PKGS = auto()
+    ADD_IND_PRIMITIVE = auto()
+    REMOVE_IND_PRIMITIVE = auto()
+    UPDATE_IND_PRIMITIVE = auto()
 
     # Series Commands
     SET_SERIES_DATA = auto()
@@ -243,28 +240,15 @@ def autoscale_time_axis(frame_id: str):
 def create_indicator(
     frame_id: str,
     indicator_id: str,
-    pane_id: str,
     outputs: dict,
     indicator_type: str,
     name: str,
 ) -> str:
-    return f"{frame_id}.create_indicator('{indicator_id}', {dump(outputs)},'{indicator_type}','{name}',{pane_id});"
+    return f"{frame_id}.create_indicator('{indicator_id}','{indicator_type}','{name}', {dump(outputs)});"
 
 
 def delete_indicator(frame_id: str, indicator_id: str) -> str:
     return f"{frame_id}.delete_indicator('{indicator_id}');"
-
-
-def add_primitive(pane_id: str, primitive_id: str, primitive_type: str, args: dict[str, Any]) -> str:
-    return f"{pane_id}.add_primitive('{primitive_id}','{primitive_type}', {dump(args)});"
-
-
-def remove_primitive(pane_id: str, primitive_id: str) -> str:
-    return f"{pane_id}.remove_primitive('{primitive_id}');"
-
-
-def update_primitive(pane_id: str, primitive_id: str, args: dict[str, Any]) -> str:
-    return f"{pane_id}.update_primitive('{primitive_id}', {dump(args)});"
 
 
 # Retreives an indicator object from a frame to manipulate
@@ -460,9 +444,6 @@ VIEW_CMD_ROLODEX: dict[JS_CMD, Callable[..., str | None]] = {
     JS_CMD.CREATE_INDICATOR: create_indicator,
     JS_CMD.DELETE_INDICATOR: delete_indicator,
     # ---- Pane Commands ----
-    JS_CMD.ADD_PRIMITIVE: add_primitive,
-    JS_CMD.REMOVE_PRIMITIVE: remove_primitive,
-    JS_CMD.UPDATE_PRIMITIVE: update_primitive,
     # ---- Indicator Commands ----
     JS_CMD.ADD_SERIES: add_series,
     JS_CMD.REMOVE_SERIES: remove_series,

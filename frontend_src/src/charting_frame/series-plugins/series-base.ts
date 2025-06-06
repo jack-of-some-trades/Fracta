@@ -4,7 +4,6 @@
  */
 import * as lwc from "lightweight-charts";
 import { Accessor, createSignal, Setter } from "solid-js";
-import { pane } from "../pane";
 import { PrimitiveBase } from "../primitive-plugins/primitive-base";
 import { RoundedCandleSeriesData, RoundedCandleSeriesImpl, RoundedCandleSeriesOptions, RoundedCandleSeriesPartialOptions } from "./rounded-candles-series/rounded-candles-series";
 
@@ -110,7 +109,7 @@ export interface SeriesPartialOptionsMap_EXT extends Exclude<lwc.SeriesPartialOp
  * Docs: https://tradingview.github.io/lightweight-charts/docs/api/interfaces/ISeriesApi
  */
 export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>> {
-    _pane: pane
+    _chart: lwc.IChartApi
     _series: lwc.ISeriesApi<lwc.SeriesType>
 
     _id: string
@@ -133,48 +132,46 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
         _name:string | undefined,
         _parent_name: string | undefined,
         _type:Series_Type, 
-        _pane:pane
+        _chart:lwc.IChartApi
     ){
         this._id = _id
         this._indicator_id = _indicator_id
         this._name = _name
         this._parent_name = _parent_name
         this.s_type = _type
-        this._pane = _pane
+        this._chart = _chart
         this._series = this._create_series(_type)
 
         const sig = createSignal<string[]>([])
         this.primitiveIds = sig[0]; this.setPrimitiveIds = sig[1]; 
 
-        //Having seriesBase Objs populate a map owned by the pane they are attached
-        //to IS stupid. I don't like it. Thing is, this is the only way to keep _create_series
-        //in SeriesBase where it should be.
-        this._pane.series_map.set(this._series, this)
+        
+        console.log(this._series)
     }
     
     private _create_series(series_type: Series_Type): lwc.ISeriesApi<lwc.SeriesType> {
         switch (series_type) {
             // ---- Base Series Types ---- //
             case (Series_Type.LINE):
-                return this._pane.chart.addSeries(lwc.LineSeries)
+                return this._chart.addSeries(lwc.LineSeries)
             case (Series_Type.AREA):
-                return this._pane.chart.addSeries(lwc.AreaSeries)
+                return this._chart.addSeries(lwc.AreaSeries)
             case (Series_Type.HISTOGRAM):
-                return this._pane.chart.addSeries(lwc.HistogramSeries)
+                return this._chart.addSeries(lwc.HistogramSeries)
             case (Series_Type.BASELINE):
-                return this._pane.chart.addSeries(lwc.BaselineSeries)
+                return this._chart.addSeries(lwc.BaselineSeries)
             case (Series_Type.BAR):
-                return this._pane.chart.addSeries(lwc.BarSeries)
+                return this._chart.addSeries(lwc.BarSeries)
             case (Series_Type.OHLC):
             case (Series_Type.CANDLESTICK):
-                return this._pane.chart.addSeries(lwc.CandlestickSeries)
+                return this._chart.addSeries(lwc.CandlestickSeries)
             // ---- Custom Series Types ---- //
             case (Series_Type.ROUNDED_CANDLE):
                 //Ideally custom series objects will get baked directly into the TS Code like this
                 //So accomodations don't need to be made on the Python side
-                return this._pane.chart.addCustomSeries(new RoundedCandleSeriesImpl())
+                return this._chart.addCustomSeries(new RoundedCandleSeriesImpl())
             default: //Catch-all, primarily reached by WhitespaceSeries'
-                return this._pane.chart.addSeries(lwc.LineSeries)
+                return this._chart.addSeries(lwc.LineSeries)
         }
     }
 
@@ -282,35 +279,32 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
     }
 
     /* Removes this series and all it's sub components from the chart. This is irreversible */
-    remove(){ 
-        this._pane.series_map.delete(this._series)
-        this._pane.chart.removeSeries(this._series)
+    remove(){
+        this._chart.removeSeries(this._series)
     }
 
     /* Changes the type of series that is displayed. Data must be given since the DataType may change */
     change_series_type(series_type:Series_Type, data:SeriesData[]){
         if (series_type === this.s_type) return
 
-        const current_zindex = this._pane.get_series_index(this._series)
-        const current_range = this._pane.chart.timeScale().getVisibleRange()
+        const current_zindex = this._series.seriesOrder()
+        const current_range = this._chart.timeScale().getVisibleRange()
         
         this.remove()
         this._series = this._create_series(series_type)
         this._series.setData(data) // Type Checking presumed to have been done in python
         this.s_type = series_type
-        this._pane.series_map.set(this._series, this)
 
         //Reset the draw order to what is was before the change.
-        this._pane.reorder_series(-1, current_zindex, false)
+        this._series.setSeriesOrder(current_zindex)
 
         //Setting Data Changes Visible Range, set it back.
         if (current_range !== null)
-            this._pane.chart.timeScale().setVisibleRange(current_range)
+            this._chart.timeScale().setVisibleRange(current_range)
     }
 
     // #region -------- lightweight-chart ISeriesAPI functions --------
     priceScale(): lwc.IPriceScaleApi {return this._series.priceScale()}
-
     applyOptions(options: SeriesPartialOptionsMap_EXT[T]) {this._series.applyOptions(options)}
     options(): Readonly<SeriesOptionsMap_EXT[T]> {return this._series.options() as SeriesOptionsMap_EXT[T]}
 

@@ -2,7 +2,7 @@
  * Component To be displayed over a Charting Pane that show the applied indicators and gives
  * access to visibility and input settings.
  */
-import { Accessor, createSignal, For, onCleanup, onMount, Setter, Show } from "solid-js"
+import { Accessor, createSignal, For, JSX, onCleanup, onMount, Setter, Show } from "solid-js"
 import { indicator } from "../../src/charting_frame/indicator"
 import { Icon, icons } from "../icons"
 
@@ -15,8 +15,9 @@ export interface legend_props {indicators_list:Accessor<indicator[]>}
 
 export function PaneLegend(props:legend_props){
     const [display, setDisplay] = createSignal<boolean>(true)
+    const [wrapperStyle, setWrapperStyle] = createSignal<JSX.CSSProperties>({})
 
-    return <div class="pane_legend">
+    return <div class="pane_legend" style={wrapperStyle()}>
         <Show when={display()}>
             <For each={props.indicators_list()}>{(indObj) => {
                 if (indObj === undefined) return <div class="ind_tag">Undefined Indicator</div>

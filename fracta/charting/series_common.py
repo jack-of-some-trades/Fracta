@@ -170,13 +170,8 @@ class SeriesCommon:
         options: SeriesOptionsCommon | dict = SeriesOptionsCommon(),
         *,
         name: Optional[str] = None,
-        display_pane_id: Optional[str] = None,
         arg_map: ArgMap | dict[str, str] = {"close": "value", "value": "close"},
     ):
-        if display_pane_id is None:
-            display_pane_id = indicator._ids[0]
-            # default to display_pane of the parent indicator
-
         if isinstance(options, SeriesOptionsCommon):
             self._options = options.as_dict
         else:
@@ -187,8 +182,8 @@ class SeriesCommon:
         self._series_ohlc_derived = sd.SeriesType.OHLC_Derived(self._series_type)
 
         self._js_id = indicator._series.generate_id(self)
-        # Tuple of Ids to make addressing through Queue easier: order = (pane, indicator, series)
-        self._ids = display_pane_id, indicator.js_id, self._js_id
+        # Tuple of Ids to make addressing through Queue easier: order = (frame, indicator, series)
+        self._ids = indicator.parent_frame.js_id, indicator.js_id, self._js_id
 
         # Collection of Sub-Object Ids to provide automatic ID Generation
         self._markers = ID_Dict("m")
@@ -537,14 +532,12 @@ class LineSeries(SeriesCommon):
         *,
         name: Optional[str] = None,
         arg_map: ArgMap | dict[str, str] = {},
-        display_pane_id: Optional[str] = None,
     ):
         super().__init__(
             indicator,
             sd.SeriesType.Line,
             options,
             name=name,
-            display_pane_id=display_pane_id,
             arg_map=arg_map,
         )
 
@@ -576,14 +569,12 @@ class HistogramSeries(SeriesCommon):
         *,
         name: Optional[str] = None,
         arg_map: ArgMap | dict[str, str] = {},
-        display_pane_id: Optional[str] = None,
     ):
         super().__init__(
             indicator,
             sd.SeriesType.Histogram,
             options,
             name=name,
-            display_pane_id=display_pane_id,
             arg_map=arg_map,
         )
 
@@ -615,14 +606,12 @@ class AreaSeries(SeriesCommon):
         *,
         name: Optional[str] = None,
         arg_map: AreaArgMap | dict[str, str] = {},
-        display_pane_id: Optional[str] = None,
     ):
         super().__init__(
             indicator,
             sd.SeriesType.Area,
             options,
             name=name,
-            display_pane_id=display_pane_id,
             arg_map=arg_map,
         )
 
@@ -654,14 +643,12 @@ class BaselineSeries(SeriesCommon):
         *,
         name: Optional[str] = None,
         arg_map: BaselineArgMap | dict[str, str] = {},
-        display_pane_id: Optional[str] = None,
     ):
         super().__init__(
             indicator,
             sd.SeriesType.Baseline,
             options,
             name=name,
-            display_pane_id=display_pane_id,
             arg_map=arg_map,
         )
 
@@ -693,7 +680,6 @@ class BarSeries(SeriesCommon):
         *,
         name: Optional[str] = None,
         arg_map: BarArgMap | dict[str, str] = {},
-        display_pane_id: Optional[str] = None,
     ):
         super().__init__(
             indicator,
@@ -701,7 +687,6 @@ class BarSeries(SeriesCommon):
             options,
             name=name,
             arg_map=arg_map,
-            display_pane_id=display_pane_id,
         )
 
     @property
@@ -732,7 +717,6 @@ class CandlestickSeries(SeriesCommon):
         *,
         name: Optional[str] = None,
         arg_map: CandleArgMap | dict[str, str] = {},
-        display_pane_id: Optional[str] = None,
     ):
         super().__init__(
             indicator,
@@ -740,7 +724,6 @@ class CandlestickSeries(SeriesCommon):
             options,
             name=name,
             arg_map=arg_map,
-            display_pane_id=display_pane_id,
         )
 
     @property
@@ -771,7 +754,6 @@ class RoundedCandleSeries(SeriesCommon):
         *,
         name: Optional[str] = None,
         arg_map: BarArgMap | dict[str, str] = {},
-        display_pane_id: Optional[str] = None,
     ):
         super().__init__(
             indicator,
@@ -779,7 +761,6 @@ class RoundedCandleSeries(SeriesCommon):
             options,
             name=name,
             arg_map=arg_map,
-            display_pane_id=display_pane_id,
         )
 
     @property

@@ -1,13 +1,10 @@
-import { SingleValueData, WhitespaceData } from "lightweight-charts";
+import * as lwc from "lightweight-charts";
 import { Accessor, createSignal, JSX, Setter } from "solid-js";
 import { ChartFrame } from "../../components/charting_frame/chart_elements";
-import { layout_display } from "../../components/layout/layouts";
 import { update_tab_func } from "../container";
 import { frame } from "../frame";
-import { Container_Layouts, flex_frame, layout_switch, num_frames, Orientation, resize_sections } from "../layouts";
 import { tf, ticker } from "../types";
 import { indicator } from "./indicator";
-import { pane } from "./pane";
 import { Series_Type } from "./series-plugins/series-base";
 
 
@@ -23,8 +20,11 @@ export const isChartingFrame = (frame: frame): frame is chart_frame => frame.typ
 export class chart_frame extends frame {
     type:string = TYPE_STR
 
-    div: Accessor<HTMLDivElement>
+    frameRuler: Accessor<HTMLDivElement>
     element: JSX.Element
+    
+    chart: lwc.IChartApi
+    whitespace_series: lwc.ISeriesApi<'Line'>
 
     timeframe: tf
     ticker: ticker
@@ -33,35 +33,11 @@ export class chart_frame extends frame {
     sources: Accessor<data_src[]>
     setSources: Setter<data_src[]>
 
-    style_sel: string
-    layout: Container_Layouts | undefined
-    
-    //Multi-Pane Layout Controls
-    setStyle: Setter<string>
-    setDisplays: Setter<layout_display[]>
-
-    panes: pane[] = []
-    private flex_panes: flex_frame[] = []
-
     constructor(id: string, tab_update_func: update_tab_func) {
         super(id, tab_update_func)
         
-        // Inner Layout Signals for resiable panes (Layout defined in TSX ChartFrame)
-        const [style, setStyle] = createSignal<string>('')
-        const [displays, setDisplays] = createSignal<layout_display[]>([])
-        const [div, setDiv] = createSignal<HTMLDivElement>(document.createElement('div'))
-
-        this.div = div
-        this.setStyle = setStyle
-        this.setDisplays = setDisplays
-
-        this.style_sel = id.substring(7) + "_pane"
-        this.element = ChartFrame({
-            ref:setDiv,
-            innerStyle: style,
-            displays: displays,
-            style_sel:this.style_sel,
-        })
+        const [frameRuler, setFrameRulerRef] = createSignal<HTMLDivElement>(document.createElement('div'))
+        this.frameRuler = frameRuler
 
         //Sources Signal for indicator Options 'Source' input selectable tag
         const sourceSignal = createSignal<data_src[]>([])
@@ -74,6 +50,34 @@ export class chart_frame extends frame {
         this.ticker = { symbol: 'FRACTA' }
         this.timeframe = new tf(1, 'D')
         this.series_type = Series_Type.CANDLESTICK
+
+        const OPTS = DEFAULT_CHART_OPTS()
+        let tmp_div = document.createElement('div')
+        this.chart = lwc.createChart(tmp_div, OPTS)
+        this.whitespace_series = this.chart.addSeries(lwc.LineSeries)
+
+        console.log(this.chart)
+
+        this.element = ChartFrame({
+            frame:this,
+            setRulerRef: setFrameRulerRef
+        })
+        
+        // The Following listeners allow smooth chart dragging while bars are actively updating.
+        this.chart_el.addEventListener('mousedown', () => {
+            this.update_timescale_opts({
+                'shiftVisibleRangeOnNewBar': false,
+                'allowShiftVisibleRangeOnWhitespaceReplacement': false,
+                'rightBarStaysOnScroll': false
+            })
+        })
+        window.document.addEventListener('mouseup', () => {
+            this.update_timescale_opts({
+                'shiftVisibleRangeOnNewBar': true,
+                'allowShiftVisibleRangeOnWhitespaceReplacement': true,
+                'rightBarStaysOnScroll': true
+            })
+        })
     }
 
     onActivation() {
@@ -82,27 +86,27 @@ export class chart_frame extends frame {
         window.topbar.setSeries(this.series_type)
         window.topbar.setTimeframe(this.timeframe)
         window.topbar.setTicker(this.ticker.symbol)
-
-        if (window.active_pane === undefined || !this.panes.includes(window.active_pane))
-            this.panes[0].assign_active_pane()
     }
 
-    onDeactivation() {
-        if (window.active_pane && this.panes.includes(window.active_pane)){
-            window.active_pane.setActive(false)
-            window.active_pane = undefined
-        }
-    }
+    onDeactivation() {}
+    
+    get panes() : lwc.IPaneApi<lwc.Time>[] {return this.chart.panes()}
+    get chart_el() : HTMLDivElement {return this.chart.chartElement()}
+
+    getPane(index: number) : lwc.IPaneApi<lwc.Time> | undefined {return this.chart.panes()[index]}
 
     // #region -------------- Python API Functions ------------------ //
-
-    protected set_whitespace_data(data: WhitespaceData[], Primitive_data:SingleValueData) {
-        if (Primitive_data === undefined) Primitive_data = {time:'1970-01-01', value:0}
-        this.panes.forEach(pane => { pane.set_whitespace_data(data, Primitive_data) })
+    
+    protected set_whitespace_data(data: lwc.WhitespaceData[], primitive_data:lwc.SingleValueData) {
+        this.whitespace_series.setData(data)
+        // primitive_series were series that group indicators together but plot nothing themselves
+        // if (primitive_data === undefined) primitive_data = {time:'1970-01-01', value:0}
+        // this.primitive_serieses.forEach((series) => series.setData([primitive_data]) )
     }
-
-    protected update_whitespace_data(data: WhitespaceData, Primitive_data:SingleValueData) {
-        this.panes.forEach(pane => { pane.update_whitespace_data(data, Primitive_data) })
+    
+    protected update_whitespace_data(data: lwc.WhitespaceData, primitive_data:lwc.SingleValueData) {
+        this.whitespace_series.update(data)
+        // this.primitive_serieses.forEach((s) => s.setData([primitive_data]))
     }
 
     protected set_ticker(new_ticker: ticker) {
@@ -126,7 +130,7 @@ export class chart_frame extends frame {
             newOpts.timeVisible = true
         }
 
-        this.panes.forEach(pane => { pane.update_timescale_opts(newOpts) });
+        this.update_timescale_opts(newOpts)
     }
 
     protected set_series_type(new_type: Series_Type) {
@@ -135,33 +139,14 @@ export class chart_frame extends frame {
             window.topbar.setSeries(this.series_type)
     }
 
-    protected add_pane(id: string): pane {
-        let new_pane = new pane(id)
-        this.panes.push(new_pane)
-        if (this.layout === undefined) this.set_layout(Container_Layouts.SINGLE)
-        return new_pane
-    }
-
-    
     protected create_indicator(
         _id: string, 
+        type: string,
+        name: string,
         outputs:{[key:string]:string}, 
-        type: string, 
-        name: string, 
-        pane:pane
     ) {
-        let new_indicator = new indicator(_id, type, name, this.sources, pane)
+        let new_indicator = new indicator(_id, type, name, outputs, this)
         this.indicators.set(_id, new_indicator)
-
-        // Push all the sources from this indicator onto the sources list
-        let tmp_array = []
-        for (const [key, value] of Object.entries(outputs))
-            tmp_array.push({
-                indicator:new_indicator,
-                function_name:key,
-                source_type:value
-            })
-        this.setSources([...this.sources(), ...tmp_array])
     }
 
     protected delete_indicator(_id: string) {
@@ -174,82 +159,182 @@ export class chart_frame extends frame {
         this.setSources(this.sources().filter((src) => src.indicator !== indicator ))
     }
 
-
     // #endregion
 
-
-    // #region -------------- Layout Control and Resize Functions ------------------ //
-
-    // TODO: Find some way to call this so the layout can actually change
-    protected set_layout(layout: Container_Layouts) {
-        this.flex_panes = layout_switch(layout, ()=>this.div().getBoundingClientRect(), this.resize.bind(this))
-        let layout_displays:layout_display[] = []
-        let pane_ind = 0
-
-        this.flex_panes.forEach((flex_pane) => {
-            if (flex_pane.orientation === Orientation.null) { // Frame Object
-                if (pane_ind < this.panes.length) {
-                    let pane = this.panes[pane_ind]
-                    layout_displays.push({
-                        orientation: flex_pane.orientation, 
-                        mouseDown: pane.assign_active_pane.bind(pane),
-                        element:pane.element,
-                        el_active:pane.active, 
-                        el_target:()=>false
-                    })
-                } else throw new Error("Not Enough Panes to change to the desired layout")
-                pane_ind += 1
-                //frame_ind tracks the equivelent frames[] index based on
-                //how many chart frames have be observed in the flex_frames[] loop
-            } else {                                            // Separator Object
-                layout_displays.push({
-                    orientation:flex_pane.orientation,
-                    mouseDown:flex_pane.mouseDown,
-                    element:undefined,
-                    el_active:()=>false, 
-                    el_target:()=>false
-                })
-            }
-        })
-
-        this.layout = layout
-        this.setDisplays(layout_displays)
-
-        //Calculate the flex_frame rect sizes, and set them to the Display Signal
-        this.resize()
+    resize(){
+        this.chart.resize(
+            Math.max(this.frameRuler().clientWidth, 0), 
+            Math.max(this.frameRuler().clientHeight, 0), 
+            false
+        )
     }
 
-    resize() {
-        // Calculate the new sizes of all the frames
-        resize_sections(()=>this.div().getBoundingClientRect(), this.flex_panes)
-
-        // Put all the resizing info into a style tag. Long-story short, putting this info into
-        // a reactive 'style' tag for each JSX.Element div is a damn pain.
-        let style = ""
-        this.flex_panes.forEach((pane, i)=>{
-            style += `
-            div.${this.style_sel}:nth-child(${i+2})${pane.style}`
-        })
-        this.setStyle(style)
-
-        // Resize all contents of each *visible* Frames
-        for (let i = 0; i < num_frames(this.layout); i++)
-            this.panes[i].resize()
-    }
-
-    // #endregion
-
-    fitcontent() {
-        this.panes[0]?.fitcontent()
-        this.panes.forEach(pane => {
-            pane.fitcontent()
-        });
-    }
-
-    autoscale_content() {
-        this.panes.forEach(pane => {
-            pane.autoscale_time_axis()
-        });
-    }
-
+    fit_content() { this.chart.timeScale().fitContent() }
+    autoscale_content() { this.chart.timeScale().resetTimeScale() }
+    update_timescale_opts(newOpts: lwc.DeepPartial<lwc.HorzScaleOptions>) { this.chart.timeScale().applyOptions(newOpts) }
 }
+
+function _set_opacity(color:string, opacity:string):string {
+    if (color.length === 4 ) return color + opacity[0]
+    else if (color.length === 7) return color + opacity
+    else return color // Ignore Opacity if already given one
+}
+
+/* Default TimeChart Options. It's a Function so the style is Evaluated at pane construction */
+function DEFAULT_CHART_OPTS(){
+    const style = getComputedStyle(document.documentElement)
+    const OPTS: lwc.DeepPartial<lwc.TimeChartOptions> = {
+        layout: {                   // ---- Layout Options ----
+            background: {
+                type: lwc.ColorType.VerticalGradient,
+                topColor: style.getPropertyValue("--chart-bg-color-top"),
+                bottomColor: style.getPropertyValue("--chart-bg-color-bottom")
+            },
+            panes: {
+                separatorColor: style.getPropertyValue("--separator-color"),
+                separatorHoverColor: _set_opacity(style.getPropertyValue("--accent-color"), '30'),
+                enableResize: true
+            },
+            textColor: style.getPropertyValue("--chart-text-color"),
+            attributionLogo: style.getPropertyValue("--chart-tv-logo") === 'true'
+        },
+        grid: {
+            vertLines: {
+                color: style.getPropertyValue("--chart-grid")
+            },
+            horzLines: {
+                color: style.getPropertyValue("--chart-grid")
+            }
+        },
+        leftPriceScale: {          // ---- VisiblePriceScaleOptions ---- 
+            mode: parseInt(style.getPropertyValue("--chart-scale-mode-left")) ?? 1,
+            // borderColor: style.getPropertyValue("--chart-axis-border"),
+        },
+        rightPriceScale: {          // ---- VisiblePriceScaleOptions ---- 
+            mode: parseInt(style.getPropertyValue("--chart-scale-mode-right")) ?? 1,
+            // borderColor: style.getPropertyValue("--chart-axis-border"),
+        },
+        crosshair: {                // ---- Crosshair Options ---- 
+            mode: parseInt(style.getPropertyValue("--chart-xhair-mode")) ?? 0,
+        },
+        kineticScroll: {            // ---- Kinetic Scroll ---- 
+            touch: true
+        },
+        timeScale: {
+            shiftVisibleRangeOnNewBar: true,
+            allowShiftVisibleRangeOnWhitespaceReplacement: true,
+            rightBarStaysOnScroll: true,
+            rightOffset: parseInt(style.getPropertyValue("--chart-right-offset")) ?? 20
+        }
+    }
+    return OPTS
+}
+
+
+// function update_opts(newOpts: lwc.DeepPartial<lwc.TimeChartOptions>) {
+//     //Splice in the priceScale options overwritting/updating signals as needed
+//     optionsSplice(newOpts, 'leftPriceScale', 'mode', this.leftScaleMode)
+//     optionsSplice(newOpts, 'leftPriceScale', 'invertScale', this.leftScaleInvert)
+//     optionsSplice(newOpts, 'rightPriceScale', 'mode', this.rightScaleMode)
+//     optionsSplice(newOpts, 'rightPriceScale', 'invertScale', this.rightScaleInvert)
+//     this.chart.applyOptions(newOpts)
+// }
+
+
+function optionsSplice(opts:any, group:string, object:string, signal:any){
+    if (opts[group] !== undefined)
+        if(opts[group][object] === undefined)
+            opts[group][object] = signal[0]()   //Set the Object to the signal
+        else
+            signal[1](opts[group][object])      //Update the signal w/ the Obj's value
+    else
+        opts[group] = {[object]:signal[0]()}    //Create the Whole Group with the signal value added
+}
+
+
+/** Primitive_Serieses
+ * 
+ * These are blank series that only contain Primitives as the name would imply. For them to display anything
+ * they need at least 1 data-point with a value and a time that is either on screen or in the future. 
+ * If they are only whitespace then they are not rendered. Similarly, if their only data is off screen *in the 
+ * past* then they are not rendered. Because of this they each carry 1 data-point the is {time: ****, value:0}
+ * where the time is always the Current bar time of the main series. Any further in the past and things may
+ * de-render. Any further in the Future and it will mess up auto-scroll on new data.
+ */
+
+/** Mouse Event Params
+ * 
+ * The Mouse Event Parameters that are returned are largely what you'd expect aside from the hoveredSeries. This isn't the Series
+ * Object that is drawn on the screen, but the series object a primitive is attached to. Rather annoying Tbh. Although, since the
+ * seriesData is accurate you could, if you found a way to work out the thickness of line plots, use the series data and the
+ * Y Coordinate to work back to which series your cursor is over. Would actually be beneficial to do this then overwrite
+ * 'hoveredSeries' into the expected series object. Not even just the seriesAPI Object but the Series-Base object defined by this lib.
+ * 
+ * Hell maybe instead of baking this feature directly into the make_event_params function you make it a public function that takes
+ * a Lightweight-Charts MouseEventParam object so it only gets invoked when needed to save on computation. This has the added benefit
+ * that anything that wants to subscribe to a native lwc CrosshairMove, Click, or DblClick can get the hovered series as needed.
+ */
+
+/** Lightweight Charts v5.0.7 Minified Mappings
+ * chartingframe.chart === lwc.ChariApi Object
+ * 
+ * this.chart.Mg === ChartApi._seriesMap: Map<SeriesApi, Series>
+ * this.chart.bg === ChartApi._seriesMapReversed: Map<Series, SeriesApi>
+ * this.chart.zu === ChartApi._panes: WeakMap<Pane, PaneApi>
+ * 
+ * this.chart.Df === ChartApi._chartWidget: ChartWidget
+ * this.chart.Df === ChartApi._chartWidget: ChartWidget
+ * this.chart.Df.ts === ChartApi._chartWidget._model: ChartModel
+ * this.chart.Df.ts.ar() === ChartApi._chartWidget._model.lightUpdate()
+ * this.chart.Df.ts.lu[] === ChartApi._chartWidget._model._serieses[]: Series[]
+ * this.chart.Df.ts.zu[] === ChartApi._chartWidget._model._panes[]: Pane[]
+ * this.chart.Df.ts.zu[].ul[] === ChartApi._chartWidget._model._panes[]._dataSources[]: IPriceDataSource[]
+ * this.chart.Df.ts.zu[].dl[] === ChartApi._chartWidget._model._panes[]._cachedOrderedSources[]: IPriceDataSource[]
+ * this.chart.Df.ts.zu[].ul[].rs === ChartApi._chartWidget._model._panes[]._dataSources[]._zOrder: number
+ * this.chart.Df.uw() === ChartApi._chartWidget._getMouseEventParamsImpl()
+ */  
+
+//** Key Map for Lightweight Charts MouseEvent Params: Valid only for Lightweight-Charts v5.0.7  */
+const MouseEventKeyMap: {[key:string]: keyof lwc.MouseEventParams} = {
+    dw: 'time',
+    Re: 'logical',
+    fw: 'point',
+    ww: 'seriesData', 
+    pw: 'paneIndex',
+    mw: 'hoveredSeries',
+    gw: 'hoveredObjectId',
+    Mw: 'sourceEvent'
+}
+
+//** Takes a normal MouseEvent and Returns the Lightweight-Charts Style Mouse Event. */
+// make_event_params(e: MouseEvent): lwc.MouseEventParams<lwc.Time> {
+//     let index = this.chart.timeScale().coordinateToLogical(e.offsetX)
+//     let sourceEvent = {
+//         clientX: e.clientX as lwc.Coordinate,
+//         clientY: e.clientY as lwc.Coordinate,
+//         pageX: e.pageX as lwc.Coordinate,
+//         pageY: e.pageY as lwc.Coordinate,
+//         screenX: e.screenX as lwc.Coordinate,
+//         screenY: e.screenY as lwc.Coordinate,
+//         localX: e.offsetX as lwc.Coordinate,
+//         localY: e.offsetY as lwc.Coordinate,
+//         ctrlKey: e.ctrlKey,
+//         altKey: e.altKey,
+//         shiftKey: e.shiftKey,
+//         metaKey: e.metaKey
+//     }
+
+//     const rect = this.chart.chartElement().getBoundingClientRect()
+//     let pt = (rect && (e.clientX - rect.left < rect.width) && (e.clientY - rect.top < rect.height))
+//         ? { x: e.clientX - rect.left as lwc.Coordinate, y: e.clientY - rect.top as lwc.Coordinate }
+//         : null
+
+//     //@ts-ignore declare Object that will recieve the Event Params after name mapping.
+//     let renamedParams:lwc.MouseEventParams = {}
+//     //@ts-ignore this.chart.lw.uw Stands for Chart._chartWidget._getMouseEventParamsImpl() : Valid only for Lightweight-Charts v5.0.7
+//     Object.entries(this.chart.lw.uw(index, pt, sourceEvent)).forEach(([k,v]) => renamedParams[MouseEventKeyMap[k]] = v)
+
+//     return renamedParams
+
+//     //TODO : Update this to make hoveredSeries hit registration better. See Comment at EoF.
+// }
