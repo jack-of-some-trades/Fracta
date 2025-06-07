@@ -1,12 +1,11 @@
+#container {
+    overflow: visible;
+}
+
 .frame {
     position: absolute;
     box-sizing: border-box;
-    border: solid var(--chart-border) 2px;
     background-color: var(--layout-main-fill);
-}
-
-.frame[active], .frame[target] {
-    border-color: transparent;
 }
 
 .frame_ruler {

@@ -164,8 +164,8 @@ function resize(width:number, height:number, layout:layout_struct, set_layout:Se
     set_layout('center', 'width', `${center_width - 2 * CENTER_PADDING}px`)
     set_layout('utilbar', 'width', `${center_width}px`)
 
-    // Resize Active Display Panels, A DOMRect is given so that the dimensions are accurate. 
-    // w/o this arg, each panel would query it's div for the size and it would be the old panel size.
+    // Perform initial resize to desired size. If the Desired rect were not passed,
+    // each panel would query it's div for the size and it would be the old panel size.
     if (window.active_container) window.active_container.resize(new DOMRect(0, 0, center_width, center_height))
         
     let func = PanelResizeCTX().widgetPanelResizeFunc()
@@ -174,6 +174,9 @@ function resize(width:number, height:number, layout:layout_struct, set_layout:Se
     //** TODO: uncomment when util Panel is implemented **/
     // func = ResizeCTX().utilPanelResizeFunc()
     // if (func !== undefined) func(new DOMRect(0, 0, center_width, utilPanelHeight))
+
+    // After all is adjusted allow the window to resize itself to it's measured DOM size so it's 100% acurate
+    if (window.active_container) window.active_container.resize()
 }
 
 function show_section_unbound(set_layout:SetStoreFunction<layout_struct>, section: LAYOUT_SECTIONS) {
