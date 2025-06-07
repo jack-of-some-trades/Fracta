@@ -1,9 +1,9 @@
 import * as lwc from "lightweight-charts";
 import { Accessor, createSignal, JSX, Setter } from "solid-js";
-import { ChartFrame } from "../../components/charting_frame/chart_elements";
-import { update_tab_func } from "../container";
-import { frame } from "../frame";
+import { ChartFrame } from "../../tsx/charting_frame/chart_elements";
 import { tf, ticker } from "../types";
+import { update_tab_func } from "../window/container";
+import { frame } from "../window/frame";
 import { indicator } from "./indicator";
 import { Series_Type } from "./series-plugins/series-base";
 
@@ -92,7 +92,7 @@ export class chart_frame extends frame {
     
     get panes() : lwc.IPaneApi<lwc.Time>[] {return this.chart.panes()}
     get chart_el() : HTMLDivElement {return this.chart.chartElement()}
-
+    
     getPane(index: number) : lwc.IPaneApi<lwc.Time> | undefined {return this.chart.panes()[index]}
 
     // #region -------------- Python API Functions ------------------ //
@@ -174,11 +174,6 @@ export class chart_frame extends frame {
     update_timescale_opts(newOpts: lwc.DeepPartial<lwc.HorzScaleOptions>) { this.chart.timeScale().applyOptions(newOpts) }
 }
 
-function _set_opacity(color:string, opacity:string):string {
-    if (color.length === 4 ) return color + opacity[0]
-    else if (color.length === 7) return color + opacity
-    else return color // Ignore Opacity if already given one
-}
 
 /* Default TimeChart Options. It's a Function so the style is Evaluated at pane construction */
 function DEFAULT_CHART_OPTS(){
@@ -230,6 +225,11 @@ function DEFAULT_CHART_OPTS(){
     return OPTS
 }
 
+function _set_opacity(color:string, opacity:string):string {
+    if (color.length === 4 ) return color + opacity[0]
+    else if (color.length === 7) return color + opacity
+    else return color // Ignore Opacity if already given one
+}
 
 // function update_opts(newOpts: lwc.DeepPartial<lwc.TimeChartOptions>) {
 //     //Splice in the priceScale options overwritting/updating signals as needed

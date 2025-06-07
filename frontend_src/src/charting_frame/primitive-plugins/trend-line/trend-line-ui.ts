@@ -36,6 +36,7 @@ export function trendline_user_interface(){
 function createTrendLine(e:MouseEvent){
     //Clean-up Line Creation listeners and Create the Line
     if (active_pane === undefined) {
+        // TODO: This no longer functions since having migrated to lwc v5
         creatingTrendLine[1](false)
         return
     }

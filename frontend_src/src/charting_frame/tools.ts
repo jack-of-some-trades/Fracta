@@ -1,6 +1,5 @@
 import { Signal } from "solid-js"
-import { icons } from "../../components/icons"
-import { pane } from "./pane"
+import { icons } from "../../tsx/generic_elements/icons"
 import { setArrow, setCrosshair, setDot } from "./primitive-plugins/cursors"
 import { creatingTrendLine, trendline_user_interface } from "./primitive-plugins/trend-line/trend-line-ui"
 

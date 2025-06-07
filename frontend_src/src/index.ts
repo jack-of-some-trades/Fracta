@@ -1,13 +1,12 @@
 import { render } from 'solid-js/web';
-import { Wrapper } from "../components/layout/wrapper";
-import { pane } from "./charting_frame/pane";
+import { Wrapper } from "../tsx/window/wrapper";
 import { Series_Type } from './charting_frame/series-plugins/series-base';
-import { container } from "./container";
-import { container_manager } from './container_manager';
-import { frame } from './frame';
-import { Container_Layouts } from './layouts';
 import { py_api } from "./py_api";
 import { tf } from './types';
+import { container } from "./window/container";
+import { container_manager } from './window/container_manager';
+import { frame } from './window/frame';
+import { Container_Layouts } from './window/layouts';
 
 //Declare Global interface. All Following declarations will be accessable to the python run_script() function
 declare global {
@@ -23,13 +22,11 @@ declare global {
         setTicker : (_:string) => void,
     }
 
-    var active_pane: pane | undefined
     var active_frame: frame | undefined
     var active_container: container
-    // Technically Pane, Frame & Container can refer to deleted objects 
-    // if they have been removed, but where the active element at the time of deletion.
-    // Beyond delaying some garbage collection, I don't think the dead references are 
-    // an issue so the behavior will stay for now.
+    // Technically Frame & Container can refer to deleted objects if they were the active 
+    // elements when they were removed. Beyond delaying some garbage collection,
+    // I don't think the dead references are an issue so the behavior will stay for now.
     var Container_Layouts: any
 }
 

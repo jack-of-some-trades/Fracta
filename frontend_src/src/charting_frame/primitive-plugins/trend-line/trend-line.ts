@@ -3,8 +3,8 @@ import {
 	AutoscaleInfo,
 	Coordinate,
 	HandleScrollOptions,
-	ISeriesPrimitivePaneRenderer,
-	ISeriesPrimitivePaneView,
+	IPrimitivePaneRenderer,
+	IPrimitivePaneView,
 	Logical,
 	MouseEventParams,
 	Point,
@@ -12,7 +12,7 @@ import {
 	SingleValueData,
 	Time
 } from 'lightweight-charts';
-import { point } from '../../../../components/layout/overlay_manager';
+import { point } from '../../../../tsx/window/overlay_manager';
 import { PrimitiveBase, draw_dot, primitiveOptions } from '../primitive-base';
 
 
@@ -190,7 +190,7 @@ export class TrendLine extends PrimitiveBase {
 /* --------------------- Primitive Render Classes ----------------------- */
 
 
-class TrendLinePaneView implements ISeriesPrimitivePaneView {
+class TrendLinePaneView implements IPrimitivePaneView {
 	_p1: Point | null = null
 	_p2: Point | null = null
 	_source: TrendLine;
@@ -316,7 +316,7 @@ class TrendLinePaneView implements ISeriesPrimitivePaneView {
 	}
 }
 
-class TrendLinePaneRenderer implements ISeriesPrimitivePaneRenderer {
+class TrendLinePaneRenderer implements IPrimitivePaneRenderer {
 	_p1: Point | null = null
 	_p2: Point | null = null
 	_hovered: boolean = false

@@ -1,9 +1,9 @@
 //Typescript API that interfaces with python.
 
-import { indicator_pkg } from "../components/layout/topbar/indicators_menu";
+import { indicator_pkg } from "../tsx/window/topbar/indicators_menu";
 import { Series_Type } from "./charting_frame/series-plugins/series-base";
-import { Container_Layouts, num_frames } from "./layouts";
 import { makeid, ticker } from "./types";
+import { Container_Layouts, num_frames } from "./window/layouts";
 
 
 //Each Function Maps directly to a function within the js_api class in js_api.py

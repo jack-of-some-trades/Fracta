@@ -1,7 +1,7 @@
 import { Accessor, createSignal, Setter, Signal } from "solid-js";
 import { createStore, SetStoreFunction } from "solid-js/store";
-import { IndicatorOpts } from "../../components/charting_frame/indicator_options";
-import { OverlayCTX } from "../../components/layout/overlay_manager";
+import { IndicatorOpts } from "../../tsx/charting_frame/indicator_options";
+import { OverlayCTX } from "../../tsx/window/overlay_manager";
 import { chart_frame } from "./charting_frame";
 import { PrimitiveBase } from "./primitive-plugins/primitive-base";
 import { primitives } from "./primitive-plugins/primitives";
