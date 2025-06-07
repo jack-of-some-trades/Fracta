@@ -5,16 +5,13 @@
 
 import { Accessor, JSX, Setter, createContext, createEffect, createSignal, on, onMount, useContext } from 'solid-js'
 import { SetStoreFunction, createStore } from 'solid-js/store'
+import { ColorContext } from '../generic_elements/color_picker'
+import { ObjTreeContext } from '../widget_panels/object_tree'
+import { Container } from './container'
 import { OverlayContextProvider } from './overlay_manager'
 import { TitleBar } from './titlebar'
 import { ToolBar, ToolBoxContext } from './toolbar/toolbar'
 import { TopBar } from './topbar/topbar'
-
-import "../../css/style_default.css"
-import "../../css/window/wrapper.css"
-import { ColorContext } from '../generic_elements/color_picker'
-import { ObjTreeContext } from '../widget_panels/object_tree'
-import { Container } from './container'
 import { WidgetBar, WidgetPanel } from './widgetbar'
 
 const MARGIN = 5

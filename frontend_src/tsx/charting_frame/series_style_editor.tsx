@@ -3,12 +3,10 @@
  */
 import { AreaSeriesOptions, BarSeriesOptions, BaselineSeriesOptions, BaselineStyleOptions, CandlestickSeriesOptions, HistogramSeriesOptions, LineSeriesOptions, LineStyle, LineStyleOptions, LineType, PriceLineSource, SeriesOptionsCommon } from "lightweight-charts"
 import { createEffect, createSignal, For, Match, on, Show, Signal, Switch } from "solid-js"
-import { ColorInput } from "../generic_elements/color_picker"
-import { Icon, icons } from "../generic_elements/icons"
-
-import "../../css/charting_frame/series_style_editor.css"
 import { RoundedCandleSeriesOptions } from "../../src/charting_frame/series-plugins/rounded-candles-series/rounded-candles-series"
 import * as s from "../../src/charting_frame/series-plugins/series-base"
+import { ColorInput } from "../generic_elements/color_picker"
+import { Icon, icons } from "../generic_elements/icons"
 
 interface series_style_editor_props{
     name: string

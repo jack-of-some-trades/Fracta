@@ -2,12 +2,10 @@
  * Indicator File Search Menu and Topbar Show/Hide Toggle Button
  */
 
-import { Icon, icons } from "../../generic_elements/icons";
-import { location_reference, overlay_div_props, OverlayCTX, OverlayDiv, point } from "../overlay_manager";
-
 import { createSignal, For, onCleanup, onMount, Setter, Show, Signal, splitProps } from "solid-js";
 import { createStore } from "solid-js/store";
-import "../../../css/window/indicator_menu.css";
+import { Icon, icons } from "../../generic_elements/icons";
+import { location_reference, overlay_div_props, OverlayCTX, OverlayDiv, point } from "../overlay_manager";
 
 interface indicator_details {
     "ind_key": string,

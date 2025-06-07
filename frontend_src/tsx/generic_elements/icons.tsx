@@ -10,7 +10,6 @@
  */
 
 import { createEffect, createResource, JSX, mergeProps, splitProps } from "solid-js";
-import "../../css/generic_elements/icon.css";
 
 const [SVG_DOC] = createResource(async () => await fetch('./svg-defs.svg').then(
     (resp) => resp.text().then((svg_file_text) => {

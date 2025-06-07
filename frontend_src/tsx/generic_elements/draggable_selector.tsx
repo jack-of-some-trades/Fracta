@@ -7,8 +7,6 @@
 import { closestCenter, createSortable, DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, Transformer, useDragDropContext } from "@thisbeyond/solid-dnd";
 import { Accessor, Component, createSignal, JSX, Show, splitProps } from "solid-js";
 
-import "../../css/generic_elements/draggable_selector.css";
-
 interface drag_section_props extends JSX.HTMLAttributes<HTMLDivElement> {
     ids: Accessor<string[]> | undefined
     children?: JSX.Element

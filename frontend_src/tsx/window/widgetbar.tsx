@@ -4,8 +4,6 @@ import { FrameViewer } from "../widget_panels/frame_viewer";
 import { ObjectTree } from "../widget_panels/object_tree";
 import { PanelResizeCTX, WIDGET_BAR_WIDTH, WIDGET_PANEL_MARGIN } from "./wrapper";
 
-import "../../css/widget_panels/widget_panel.css";
-
 const [selectedWidget, setSelectedWidget] = createSignal<icons | undefined>()
 
 // #region --------------------- Widget Bar Selector ----------------------- */

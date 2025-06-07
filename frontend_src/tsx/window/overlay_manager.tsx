@@ -9,8 +9,6 @@
 import { Accessor, createContext, createEffect, createSignal, For, JSX, on, onCleanup, onMount, Setter, Show, Signal, splitProps, useContext } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import "../../css/window/overlay.css";
-
 
 //#region --------------------- Context Manager --------------------- //
 

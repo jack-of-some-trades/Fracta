@@ -10,8 +10,6 @@ import { SeriesSwitcher } from "./series_switch"
 import { SymbolSearchBox } from "./symbol_search"
 import { TimeframeSwitcher } from "./timeframe_switch"
 
-import "../../../css/window/topbar.css"
-
 export function TopBar(props:JSX.HTMLAttributes<HTMLDivElement>){
     return <div class='layout_main layout_flex' {...props}>
         {/**** left Aligned ****/}

@@ -6,8 +6,6 @@ import { Accessor, createEffect, createSignal, For, JSX, onCleanup, onMount, Set
 import { chart_frame } from "../../src/charting_frame/charting_frame";
 import { Icon, icons, TextIcon } from "../generic_elements/icons";
 
-import "../../css/charting_frame/pane.css";
-
 /**
  * @style_sel : querySelect string used by <Layout/> to ensure style sizing is only applied
  *              to the appropriate elements. Should be unique

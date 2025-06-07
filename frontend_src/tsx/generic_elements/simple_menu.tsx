@@ -5,8 +5,6 @@ import { createSignal, JSX, mergeProps, onMount, Show, splitProps } from "solid-
 import { OverlayCTX } from "../window/overlay_manager";
 import { Icon, icons } from "./icons";
 
-import "../../css/generic_elements/simple_menu.css";
-
 //  ***************  Show Overlay Menu Button  *************** //
 interface menu_btn_props extends JSX.HTMLAttributes<HTMLDivElement> {
     id:string

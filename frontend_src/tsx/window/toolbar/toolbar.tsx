@@ -2,12 +2,10 @@
  * ToolBar Component (and sub-components) that are displayed along the Left hand side of the screen.
  */
 import { Accessor, createContext, createEffect, createSignal, For, JSX, on, Setter, useContext } from "solid-js"
+import { TOOL_CREATION_MAP, TOOL_FUNC_MAP } from "../../../src/charting_frame/tools"
 import { Icon, icons } from "../../generic_elements/icons"
 import { location_reference, OverlayCTX, OverlayDiv, point } from "../overlay_manager"
 import { toolbar_menu_props, ToolBarMenuButton } from "./toolbar_menu"
-
-import "../../../css/window/toolbar.css"
-import { TOOL_CREATION_MAP, TOOL_FUNC_MAP } from "../../../src/charting_frame/tools"
 
 export function ToolBar(props:JSX.HTMLAttributes<HTMLDivElement>){
     return <div class='layout_main layout_flex flex_col' {...props}>

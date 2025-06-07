@@ -6,8 +6,6 @@
 import { Component, createEffect, createSignal, For, JSX, on, onMount, Show, Signal, splitProps } from "solid-js"
 import { OverlayCTX } from "../window/overlay_manager"
 
-import "../../css/generic_elements/navigator_menu.css"
-
 interface nav_menu_props extends JSX.HTMLAttributes<HTMLDivElement>{
     tabs: {[key:string]: Component}
     overlay_id?:string

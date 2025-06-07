@@ -8,6 +8,8 @@ import { container_manager } from './window/container_manager';
 import { frame } from './window/frame';
 import { Container_Layouts } from './window/layouts';
 
+const styles = import.meta.glob('../css/**/*.css', { eager: true });
+
 //Declare Global interface. All Following declarations will be accessable to the python run_script() function
 declare global {
     var api: py_api

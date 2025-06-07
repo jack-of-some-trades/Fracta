@@ -4,7 +4,6 @@
  */
 import { Accessor, createContext, createEffect, createSignal, For, JSX, on, onCleanup, onMount, Show, splitProps, useContext } from "solid-js"
 import { createStore, SetStoreFunction } from "solid-js/store"
-import "../../css/generic_elements/color_picker.css"
 import { Icon, icons } from "./icons"
 
 const default_colors = [

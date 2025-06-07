@@ -9,8 +9,6 @@
 import { createContext, createSignal, JSX, useContext } from "solid-js";
 import { default_layout_ctx_args, Layout, layout_display } from "./layouts";
 
-import "../../css/window/container.css";
-
 let ContainerContext = createContext(default_layout_ctx_args);
 export function ContainerCTX() { return useContext(ContainerContext) }
 

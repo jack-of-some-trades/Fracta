@@ -5,14 +5,12 @@
  */
 import { createSignal, For, Match, Show, splitProps, Switch } from "solid-js"
 import { indicator } from "../../src/charting_frame/indicator"
+import { SeriesBase_T } from "../../src/charting_frame/series-plugins/series-base"
 import { ColorInput } from "../generic_elements/color_picker"
 import { Icon, icons, TextIcon } from "../generic_elements/icons"
 import { NavigatorMenu } from "../generic_elements/navigator_menu"
 import { location_reference, overlay_div_props, OverlayDiv, point } from "../window/overlay_manager"
 import { SeriesStyleEditor } from "./series_style_editor"
-
-import "../../css/charting_frame/indicator_options.css"
-import { SeriesBase_T } from "../../src/charting_frame/series-plugins/series-base"
 
 /**
  * @close_menu : Callable to the close Options Menu

@@ -8,8 +8,6 @@ import { ticker } from "../../../src/types"
 import { Icon, icons } from "../../generic_elements/icons"
 import { location_reference, overlay_div_props, OverlayCTX, OverlayDiv, point } from "../overlay_manager"
 
-import "../../../css/window/symbol_search.css"
-
 interface select_filters {
     exchange:string[],
     source:string[],

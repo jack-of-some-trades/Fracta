@@ -11,8 +11,6 @@
 import { Accessor, For, JSX, Setter } from "solid-js"
 import { Orientation } from "../../src/window/layouts"
 
-import "../../css/window/layouts.css"
-
 export interface layout_display {
     orientation: Orientation
     element: JSX.Element | HTMLDivElement | undefined,

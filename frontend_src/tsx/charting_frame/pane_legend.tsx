@@ -6,8 +6,6 @@ import { Accessor, createSignal, For, JSX, onCleanup, onMount, Setter, Show } fr
 import { indicator } from "../../src/charting_frame/indicator"
 import { Icon, icons } from "../generic_elements/icons"
 
-import "../../css/charting_frame/pane.css"
-
 /**
  * @indicators_list : SolidJS Reactive list of indicators.
  */

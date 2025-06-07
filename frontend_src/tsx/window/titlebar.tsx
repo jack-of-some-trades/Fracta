@@ -10,9 +10,6 @@ import { container_manager } from "../../src/window/container_manager"
 import { Icon, icon_props, icons } from '../generic_elements/icons'
 import { LAYOUT_SECTIONS } from "./wrapper"
 
-import "../../css/window/tabs.css"
-import "../../css/window/titlebar.css"
-
 interface title_bar_props extends JSX.HTMLAttributes<HTMLDivElement>{
     show_section:(section:LAYOUT_SECTIONS) => void,
     hide_section:(section:LAYOUT_SECTIONS) => void,
