@@ -7,8 +7,10 @@ import { frame } from "../../src/window/frame";
 import { num_frames } from "../../src/window/layouts";
 import { DraggableSelection, OverlayItemTag, SelectableItemTag } from "../generic_elements/draggable_selector";
 import { Icon, icons } from "../generic_elements/icons";
-import { PanelResizeCTX } from "../window/wrapper";
+import { WidgetPanelSizeCTX } from "../window/wrapper";
 
+const MIN_WIDTH = 156
+const MAX_WIDTH = 468
 const DEFAULT_WIDTH = 200
 
 export function FrameViewer(){
@@ -20,7 +22,11 @@ export function FrameViewer(){
   
     const getTagName = (id:string) => FRAME_NAME_MAP.get(active_container.frames.find((f)=>f.id === id)?.type ?? "") ?? ""
 
-    onMount(()=>PanelResizeCTX().setWidgetPanelWidth(DEFAULT_WIDTH))
+    onMount(()=>{
+        WidgetPanelSizeCTX().setMinSize(MIN_WIDTH)
+        WidgetPanelSizeCTX().setMaxSize(MAX_WIDTH)
+        WidgetPanelSizeCTX().setSize(DEFAULT_WIDTH)
+    })
 
     return <>
         <div class='widget_panel_title'>Frame Viewer</div>

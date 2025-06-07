@@ -2,7 +2,7 @@ import { createEffect, createSignal, JSX, Match, Switch } from "solid-js";
 import { Icon, icons } from "../generic_elements/icons";
 import { FrameViewer } from "../widget_panels/frame_viewer";
 import { ObjectTree } from "../widget_panels/object_tree";
-import { PanelResizeCTX, WIDGET_BAR_WIDTH, WIDGET_PANEL_MARGIN } from "./wrapper";
+import { WIDGET_BAR_WIDTH, WIDGET_PANEL_MARGIN, WidgetPanelSizeCTX } from "./wrapper";
 
 const [selectedWidget, setSelectedWidget] = createSignal<icons | undefined>()
 
@@ -43,7 +43,7 @@ function WidgetIcon(props:{icon:icons} & JSX.SvgSVGAttributes<SVGSVGElement> ){
 // #region --------------------- Widget Panel Display ----------------------- */
 
 export function WidgetPanel(divProps:JSX.HTMLAttributes<HTMLDivElement> ){
-    const resizePanel = PanelResizeCTX().setWidgetPanelWidth
+    const resizePanel = WidgetPanelSizeCTX().setSize
 
     const resizeWidgetPanel = (e:MouseEvent) => {
         resizePanel(window.innerWidth - (e.clientX + WIDGET_BAR_WIDTH + WIDGET_PANEL_MARGIN))

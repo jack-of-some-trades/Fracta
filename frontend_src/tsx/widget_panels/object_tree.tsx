@@ -6,8 +6,10 @@ import { SeriesBase_T } from "../../src/charting_frame/series-plugins/series-bas
 import { DraggableSelection, OverlayItemTag, SelectableItemTag } from "../generic_elements/draggable_selector";
 
 import '../../css/widget_panels/object_tree.css';
-import { PanelResizeCTX } from "../window/wrapper";
+import { WidgetPanelSizeCTX } from "../window/wrapper";
 
+const MIN_WIDTH = 156
+const MAX_WIDTH = 468
 const DEFAULT_WIDTH = 250
 
 // #region --------------------- Object Tree Context ----------------------- */
@@ -122,8 +124,10 @@ export function ObjectTree(){
     }
 
     onMount(()=>{
-        PanelResizeCTX().setWidgetPanelWidth(DEFAULT_WIDTH)
-        PanelResizeCTX().setWidgetPanelResizeFunc(() => onWindowResize)
+        WidgetPanelSizeCTX().setMinSize(MIN_WIDTH)
+        WidgetPanelSizeCTX().setMaxSize(MAX_WIDTH)
+        WidgetPanelSizeCTX().setSize(DEFAULT_WIDTH)
+        WidgetPanelSizeCTX().setResizeFunc(() => onWindowResize)
     })
 
     return <>

@@ -19,10 +19,12 @@ const TOP_HEIGHT = 38
 const TITLE_HEIGHT = 38
 const CENTER_PADDING = 2
 
-const MIN_WIDGET_PANEL_WIDTH = 156
-const MAX_WIDGET_PANEL_WIDTH = 468
 export const WIDGET_BAR_WIDTH = 52
 export const WIDGET_PANEL_MARGIN = 2
+
+const MIN_WIDGET_PANEL_WIDTH = 156
+const MAX_WIDGET_PANEL_WIDTH = 468
+const DEFAULT_WIDGET_PANEL_WIDTH = 208
 
 const TOOLBAR_WIDTH = 46
 const UTILBAR_WIDTH = 38
@@ -67,7 +69,7 @@ export enum LAYOUT_SECTIONS {
  */
 export function Wrapper(){
     const [layout, set_layout] = createStore(layout_default)
-    const widgetPanelWidth = PanelResizeCTX().widgetPanelWidth
+    const widgetPanelWidth = WidgetPanelSizeCTX().size
 
     onMount(() => { 
         //Add Resize listener
@@ -119,7 +121,7 @@ function GlobalContexts(props:JSX.HTMLAttributes<HTMLElement>){
         <ColorContext>
         <ToolBoxContext>
         <ObjTreeContext>
-        <PanelResizeContext>
+        <PanelResizeContext widget={true}>
         <OverlayContextProvider>
             {props.children}
         </OverlayContextProvider>
@@ -134,7 +136,7 @@ function GlobalContexts(props:JSX.HTMLAttributes<HTMLElement>){
 //#region -------------- Interactive Layout Functions -------------- //
 
 function resize(width:number, height:number, layout:layout_struct, set_layout:SetStoreFunction<layout_struct>){
-    const widgetPanelWidth = PanelResizeCTX().widgetPanelWidth()
+    const widgetPanelWidth = WidgetPanelSizeCTX().size()
     let side_bar_height = height - TITLE_HEIGHT
     let center_height = height - TITLE_HEIGHT
     let center_width = width
@@ -165,11 +167,11 @@ function resize(width:number, height:number, layout:layout_struct, set_layout:Se
     // each panel would query it's div for the size and it would be the old panel size.
     if (window.active_container) window.active_container.resize(new DOMRect(0, 0, center_width, center_height))
         
-    let func = PanelResizeCTX().widgetPanelResizeFunc()
+    let func = WidgetPanelSizeCTX().resizeFunc()
     if (func !== undefined) func(new DOMRect(0, 0, widgetPanelWidth, center_height))
 
     //** TODO: uncomment when util Panel is implemented **/
-    // func = ResizeCTX().utilPanelResizeFunc()
+    // func = UtilPanelSizeCTX().resizeFunc()
     // if (func !== undefined) func(new DOMRect(0, 0, center_width, utilPanelHeight))
 
     // After window settles, allow the window to resize itself to it's measured DOM size so it's 100% accurate
@@ -235,60 +237,56 @@ function hide_section_unbound(set_layout:SetStoreFunction<layout_struct>, sectio
 
 //Resize Context for Widget & Util Panels
 interface resize_context_props { 
-    widgetPanelWidth: Accessor<number>,
-    setWidgetPanelWidth: (width:number) => void,
-    widgetPanelResizeFunc: Accessor<(rect:DOMRect)=>void>,
-    setWidgetPanelResizeFunc: Setter<(rect:DOMRect)=>void>
-
-    //** TODO: uncomment when util Panel is implemented **/
-    // utilPanelHeight: Accessor<number>,
-    // setUtilPanelHeight: (height:number) => void,
-    // utilPanelResizeFunc: Accessor<(rect:DOMRect)=>void>,
-    // setUtilPanelResizeFunc: Setter<(rect:DOMRect)=>void>
+    size: Accessor<number>,
+    setSize: (width:number) => void,
+    setMinSize: Setter<number>,
+    setMaxSize: Setter<number>,
+    resizeFunc: Accessor<(rect:DOMRect)=>void>,
+    setResizeFunc: Setter<(rect:DOMRect)=>void>,
 }
 
 const default_resize_props:resize_context_props = {
-    widgetPanelWidth: ()=>0,
-    setWidgetPanelWidth: ()=>{},
-    widgetPanelResizeFunc:  ()=>()=>{},
-    setWidgetPanelResizeFunc: ()=>{},
-
-    //** TODO: uncomment when util Panel is implemented **/
-    // utilPanelHeight: ()=>0,
-    // setUtilPanelHeight: ()=>{},
-    // utilPanelResizeFunc:  ()=>()=>{},
-    // setUtilPanelResizeFunc: ()=>{},
+    size: ()=>0,
+    setSize: ()=>{},
+    setMinSize: ()=>{},
+    setMaxSize: ()=>{},
+    resizeFunc:  ()=>()=>{},
+    setResizeFunc: ()=>{},
 }
 
-let resizeContext = createContext<resize_context_props>( default_resize_props )
-export function PanelResizeCTX():resize_context_props { return useContext(resizeContext) }
+let widgetResizeContext = createContext<resize_context_props>( default_resize_props )
+export function WidgetPanelSizeCTX():resize_context_props { return useContext(widgetResizeContext) }
 
-function PanelResizeContext(props:JSX.HTMLAttributes<HTMLElement>){
-    //** TODO: uncomment when util Panel is implemented **/
-    // const utilPanelHeight = createSignal(0)
-    // const utilPanelFunc= createSignal((rect:DOMRect)=>{})
+let utilResizeContext = createContext<resize_context_props>( default_resize_props )
+export function UtilPanelSizeCTX():resize_context_props { return useContext(utilResizeContext) }
 
-    const widgetPanelWidth = createSignal<number>(208)
-    const widgetPanelFunc = createSignal((rect:DOMRect)=>{})
+function PanelResizeContext(props:JSX.HTMLAttributes<HTMLElement> & {widget:boolean}){
+    const PanelFunc = createSignal((rect:DOMRect)=>{})
+    const PanelSize = createSignal<number>(DEFAULT_WIDGET_PANEL_WIDTH)
+    const MinPanelSize = createSignal<number>(MIN_WIDGET_PANEL_WIDTH)
+    const MaxPanelSize = createSignal<number>(MAX_WIDGET_PANEL_WIDTH)
     
     const ResizeCTX:resize_context_props = {
-        widgetPanelWidth: widgetPanelWidth[0],
+        size: PanelSize[0],
         //Bound the size of the widget panel
-        setWidgetPanelWidth: (v:number)=>{widgetPanelWidth[1](Math.max(Math.min(v, MAX_WIDGET_PANEL_WIDTH), MIN_WIDGET_PANEL_WIDTH))},
-        widgetPanelResizeFunc:  widgetPanelFunc[0],
-        setWidgetPanelResizeFunc: widgetPanelFunc[1],
-    
-    //** TODO: uncomment when util Panel is implemented **/
-        // utilPanelHeight: utilPanelHeight[0],
-        // setUtilPanelHeight: (v:number)=>{utilPanelHeight[1](Math.max(Math.min(v, MAX_UTIL_PANEL_HEIGHT), MIN_UTIL_PANEL_HEIGHT))},
-        // utilPanelResizeFunc:  utilPanelFunc[0],
-        // setUtilPanelResizeFunc: utilPanelFunc[1],
+        setSize: (v:number)=>{PanelSize[1](Math.max(Math.min(v, MaxPanelSize[0]()), MinPanelSize[0]()))},
+        setMinSize: MinPanelSize[1],
+        setMaxSize: MaxPanelSize[1],
+        resizeFunc:  PanelFunc[0],
+        setResizeFunc: PanelFunc[1],
     }
-    resizeContext = createContext<resize_context_props>(ResizeCTX)
 
-    return <resizeContext.Provider value={ResizeCTX}>
-        {props.children}
-    </resizeContext.Provider>
+    if (props.widget) {
+        widgetResizeContext = createContext<resize_context_props>(ResizeCTX)
+        return <widgetResizeContext.Provider value={ResizeCTX}>
+            {props.children}
+        </widgetResizeContext.Provider>
+    } else {
+        utilResizeContext = createContext<resize_context_props>(ResizeCTX)
+        return <utilResizeContext.Provider value={ResizeCTX}>
+            {props.children}
+        </utilResizeContext.Provider>
+    }
 }
 
 //#endregion
