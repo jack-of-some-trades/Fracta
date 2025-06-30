@@ -6,6 +6,8 @@
     border-radius: 5px;
     color: var(--icon-color);
     background-color: var(--icon-background-color);
+
+    transition: rotate 0.15s ease-in-out;
 }
 
 .icon[hidden] {

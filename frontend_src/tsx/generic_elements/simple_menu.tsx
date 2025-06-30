@@ -6,10 +6,16 @@ import { OverlayCTX } from "../window/overlay_manager";
 import { Icon, icons } from "./icons";
 
 //  ***************  Show Overlay Menu Button  *************** //
+
+/**
+ * id: query selectable string id
+ * icon_act: Base icon to show when active
+ * icon_deact: Icon to show when button is not active. If not present, the icon_act will be rotated 180Deg
+ */
 interface menu_btn_props extends JSX.HTMLAttributes<HTMLDivElement> {
     id:string
     icon_act:icons
-    icon_deact:icons
+    icon_deact?:icons
 }
 
 /**
@@ -32,13 +38,23 @@ export function ShowMenuButton(props:menu_btn_props){
         }
     })})
 
-    return (
-        <div {...divProps} ref={el}>
-            <Icon 
-                icon={display() ? props.icon_act : props.icon_deact} 
-            />
-        </div>
-    )
+    if (props.icon_deact)
+        return (
+            <div {...divProps} ref={el}>
+                <Icon 
+                    icon={display() ? props.icon_act : props.icon_deact}
+                />
+            </div>
+        )
+    else
+        return (
+            <div {...divProps} ref={el}>
+                <Icon 
+                    icon={props.icon_act}
+                    style={{rotate:display()?'180deg':'0deg'}} 
+                />
+            </div>
+        )
 }
 
 
@@ -53,7 +69,7 @@ export function MenuSection(props:menu_section_props){
     return <>
         <div class='menu_section_titlebox' onClick={() => setDisplay(!display())}>
             <span class='menu_section_text text'>{props.label.toUpperCase()}</span>
-            <Icon icon={display() ? icons.menu_arrow_sn : icons.menu_arrow_ns} />
+            <Icon icon={icons.menu_arrow_sn} style={{rotate:display()? '360deg': '180deg'}}/>
         </div>
         <Show when={display()}>
             <div class='menu_section' style={props.style}>{props.children}</div>

@@ -26,7 +26,6 @@ export function ToolBarMenuButton(props:toolbar_menu_props){
     let el = document.createElement('div')
 
     const [location, setLocation] = createSignal<point>({x:0, y:0})
-    const [iconDeact, seticonDeact] = createSignal<icons>(icons.blank)
     const [displayIcon, setDisplayIcon] = createSignal<icons>(props.default_icon)
 
     const updateLocation = () => {
@@ -48,11 +47,7 @@ export function ToolBarMenuButton(props:toolbar_menu_props){
     )
 
     return (
-        <div ref={el}
-            class='toolbar_container'  
-            onMouseEnter={() => seticonDeact(icons.menu_arrow_ew)} 
-            onMouseLeave={() => seticonDeact(icons.blank)}
-        >
+        <div ref={el} class='toolbar_container'>
             <Icon
                 icon={displayIcon()}
                 attr:active={TOOL_CREATION_MAP.get(displayIcon())?.[0]() ? "" : undefined}
@@ -62,8 +57,7 @@ export function ToolBarMenuButton(props:toolbar_menu_props){
             <ShowMenuButton 
                 id={props.id}
                 classList={{toolbar_menu_button:true}}
-                icon_act={icons.menu_arrow_we}
-                icon_deact={iconDeact()}
+                icon_act={icons.menu_arrow_ew}
             />
         </div>
     )

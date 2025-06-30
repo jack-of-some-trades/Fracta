@@ -37,6 +37,13 @@
     background-color: var(--icon-hover-color);
 }
 
+.toolbar_menu_button .icon {
+    color: transparent;
+}
+
+.toolbar_menu_button:hover .icon {
+    color: var(--icon-color);
+}
 /* ********** ToolBox Visibility Button ********** */
 
 .toolbox_btn {

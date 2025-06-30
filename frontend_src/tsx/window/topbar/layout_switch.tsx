@@ -113,8 +113,7 @@ export function LayoutSwitcher(){
             <ShowMenuButton 
                 id={id} 
                 class="topbar_menu_button"
-                icon_act={icons.menu_arrow_sn} 
-                icon_deact={icons.menu_arrow_ns}
+                icon_act={icons.menu_arrow_ns}
             />
         </div>
     )
