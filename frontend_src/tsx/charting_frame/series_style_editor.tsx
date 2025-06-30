@@ -130,7 +130,7 @@ function onSubmit(series:s.SeriesBase_T, e:SubmitEvent){
         const pane_id_array = series.id.split('_')
         const frame_id = pane_id_array.slice(0,4).join('_')
         const container_id = pane_id_array.slice(0,2).join('_')
-        window.api.update_series_options(container_id, frame_id, series._indicator_id, series.id, series.options())
+        window.api.update_series_options(container_id, frame_id, series.indicator.id, series.id, series.options())
     }
 }
 

@@ -2,8 +2,9 @@
  * JSX Components that are responsible for displaying, or are displayed on top of, a Charting Window.
  */
 import { IPaneApi, Time } from "lightweight-charts";
-import { Accessor, createEffect, createSignal, For, JSX, onCleanup, onMount, Setter, Show, splitProps } from "solid-js";
-import { chart_frame } from "../../src/charting_frame/charting_frame";
+import { createEffect, createSignal, For, JSX, onCleanup, onMount, Setter, Show, splitProps } from "solid-js";
+import { charting_frame } from "../../src/charting_frame/charting_frame";
+import { indicator } from "../../src/charting_frame/indicator";
 import { Icon, icons, TextIcon } from "../generic_elements/icons";
 
 /**
@@ -15,16 +16,16 @@ import { Icon, icons, TextIcon } from "../generic_elements/icons";
  * @displays  : Layout_Display[] List to be used by <Layout/>
  */
 interface chart_frame_props {
-    frame: chart_frame,
+    frame: charting_frame,
     setRulerRef: Setter<HTMLDivElement>,
 }
 export function ChartFrame(props:chart_frame_props){
     const [,passDown] = splitProps(props, ['setRulerRef'])
-    const [panes, setPanes] = createSignal<IPaneApi<Time>[]>(props.frame.chart.panes())
+    const [panes, setPanes] = createSignal<IPaneApi<Time>[]>(props.frame._chart.panes())
 
     // Update the list of panes every time there is a change to table element
     const watcher = new MutationObserver(() => {
-        setPanes(props.frame.chart.panes())
+        setPanes(props.frame._chart.panes())
     })
     onMount(() => watcher.observe(
         props.frame.chart_el.querySelector('table') as HTMLTableElement,
@@ -36,7 +37,8 @@ export function ChartFrame(props:chart_frame_props){
         {props.frame.chart_el}
         <For each={panes()}>{(pane, index) =>
             <ChartPane
-                index = {index()}
+                pane = {pane}
+                pane_index = {index()}
                 {...passDown}
             />
         }</For>
@@ -52,12 +54,13 @@ export function ChartFrame(props:chart_frame_props){
  *      addressed by index
  */
 interface chart_pane_props {
-    index: number,
-    frame: chart_frame
+    pane: IPaneApi<Time>,
+    pane_index: number,
+    frame: charting_frame
 }
 export function ChartPane(props:chart_pane_props){
     let sub_el = (sel: string) => {
-        return props.frame.getPane(props.index)?.getHTMLElement().querySelector(sel) as HTMLTableCellElement
+        return props.frame.getPane(props.pane_index)?.getHTMLElement().querySelector(sel) as HTMLTableCellElement
     }
     const LEFT_AXIS = sub_el("td:nth-child(1)")
     const CHART_PANE = sub_el("td:nth-child(2)")
@@ -71,6 +74,10 @@ export function ChartPane(props:chart_pane_props){
             chart_cell_ref={CHART_PANE}
         />
         <PaneLegend
+            {...props}
+            chart_cell_ref = {CHART_PANE}
+        />
+        <PaneTools
             {...props}
             chart_cell_ref = {CHART_PANE}
         />
@@ -89,15 +96,15 @@ export function ChartPane(props:chart_pane_props){
  * The Buttons allow the user to change between Normal, Log, %, index-to-100, and inverted scales.
  */
 interface scale_props extends JSX.HTMLAttributes<HTMLDivElement>{
-    index: number,
+    pane_index: number,
     pricescale: string,
-    frame: chart_frame,
+    frame: charting_frame,
     cell_ref:HTMLTableCellElement,
     chart_cell_ref:HTMLTableCellElement,
 }
 function ScaleToggle(props:scale_props){
     let divRef = document.createElement('div')
-    const _getPriceScale = () =>  props.frame.getPane(props.index)?.priceScale(props.pricescale)
+    const _getPriceScale = () =>  props.frame.getPane(props.pane_index)?.priceScale(props.pricescale)
 
     const [show, setShow] = createSignal(false)
     const [wrapperStyle, setWrapperStyle] = createSignal<JSX.CSSProperties>({})
@@ -127,8 +134,8 @@ function ScaleToggle(props:scale_props){
         })
     }
     
+    // Observer to watch for when pane resizes (resize controlled by lightweight charts library)
     const watcher = new MutationObserver(_reposition)
-
     onMount(() => {
         _reposition()
         watcher.observe(props.chart_cell_ref, {attributeFilter:['style']})
@@ -176,25 +183,23 @@ function ScaleToggle(props:scale_props){
     </Show>
 }
 
-
-
-/**
- * @indicators_list : SolidJS Reactive list of indicators.
- */
-export interface legend_props {
-    index: number,
-    frame: chart_frame,
-    chart_cell_ref: HTMLTableCellElement
+interface paneToolsProps extends JSX.HTMLAttributes<HTMLDivElement>{
+    pane: IPaneApi<Time>
+    frame: charting_frame,
+    chart_cell_ref:HTMLTableCellElement,
 }
+function PaneTools(props:paneToolsProps){
+    // Return Nothing if there is only one pane displayed
+    if (props.frame.paneAPIs.length == 1) return undefined
 
-export function PaneLegend(props:legend_props){
-    const [show, setShow] = createSignal<boolean>(true)
+    let tools_ref = document.createElement('div')
     const [wrapperStyle, setWrapperStyle] = createSignal<JSX.CSSProperties>({})
 
     const _reposition = () => {
+        let _cell = props.chart_cell_ref 
         setWrapperStyle({
-            top:`${props.chart_cell_ref.offsetTop + 8}px`,
-            left:`${props.chart_cell_ref.offsetLeft + 8}px`
+            top:`${_cell.offsetTop + 8}px`,
+            left:`${_cell.offsetLeft + _cell.offsetWidth - 8 - tools_ref.offsetWidth}px`
         })
     }
     const watcher = new MutationObserver(_reposition)
@@ -206,24 +211,82 @@ export function PaneLegend(props:legend_props){
     onMount(() => {watcher.observe(props.chart_cell_ref, {attributeFilter:['style']})})
     onCleanup(() => {watcher.disconnect()})
 
-    return <div class="pane_legend" style={wrapperStyle()}>
-        {/* <Show when={display()}>
-            <For each={props.indicators_list()}>{(indObj) => {
+    return <div class="pane_tools" ref={tools_ref} style={wrapperStyle()}>
+        <Icon 
+            icon={icons.window_add}
+            width={12} height={16}
+            onClick={()=>console.log('new pane')}
+            classList={{icon_text:false, pane_tools_icon:true}}
+        />
+        <Icon 
+            icon={icons.menu_arrow_ns}
+            width={12} height={16} viewBox={'-8 -4 32 16'}
+            onClick={()=>console.log('move down')}
+            classList={{icon_text:false, pane_tools_icon:true}}
+        />
+        <Icon 
+            icon={icons.menu_arrow_sn}
+            width={12} height={16} viewBox={'-8 -4 32 16'}
+            onClick={()=>console.log('move up')}
+            classList={{icon_text:false, pane_tools_icon:true}}
+        />
+        <Icon 
+            icon={icons.close}
+            width={12} height={16} viewBox={'-4 -4 26 26'}
+            onClick={()=>console.log('delete pane')}
+            classList={{icon_text:false, pane_tools_icon:true}}
+        />
+        <Icon 
+            icon={icons.maximize}
+            width={12} height={16}
+            onClick={()=>console.log('fullframe pane')}
+            classList={{icon_text:false, pane_tools_icon:true}}
+        />
+    </div>
+}
+
+//# region ---- ---- ---- Pane Legend ---- ---- ---- //
+
+/**
+ * @indicators_list : SolidJS Reactive list of indicators.
+ */
+export interface legend_props {
+    pane: IPaneApi<Time>
+    pane_index: number,
+    frame: charting_frame,
+    chart_cell_ref: HTMLTableCellElement
+}
+
+function PaneLegend(props:legend_props){
+    let legend_ref = document.createElement('div')
+    const [show, setShow] = createSignal<boolean>(true)
+    const [wrapperStyle, setWrapperStyle] = createSignal<JSX.CSSProperties>({})
+
+    const _reposition = () => {
+        setWrapperStyle({
+            top:`${props.chart_cell_ref.offsetTop + 8}px`,
+            left:`${props.chart_cell_ref.offsetLeft + 8}px`
+        })
+        // Minimize the Indicators list if the pane is too small
+        if (show() && props.pane.getHeight() < legend_ref.offsetHeight)
+            setShow(false)
+    }
+    const watcher = new MutationObserver(_reposition)
+
+    onMount(() => {
+        _reposition()
+        watcher.observe(props.chart_cell_ref, {attributeFilter:['style']})
+    })
+    onMount(() => {watcher.observe(props.chart_cell_ref, {attributeFilter:['style']})})
+    onCleanup(() => {watcher.disconnect()})
+
+    return <div class="pane_legend" ref={legend_ref} style={wrapperStyle()}>
+        <Show when={show()}>
+            <For each={props.frame.indicators_on_pane(props.pane)}>{(indObj) => {
                 if (indObj === undefined) return <div class="ind_tag">Undefined Indicator</div>
-            
-                return (
-                    <IndicatorTag
-                        name={indObj.name !== ""? indObj.name : indObj.type } 
-                        deletable={indObj.id != "i_XyzZy"} //Cannot Delete Main Series
-                        innerHtml={indObj.labelHtml}
-                        objVisibility={indObj.objVisibility[0]}
-                        setObjVisibility={indObj.setVisibility.bind(indObj)}
-                        setMenuVisibility={indObj.setMenuVisibility}
-                        menuVisibility={indObj.menuVisibility}
-                    />
-                )
+                return  <IndicatorTag ind={indObj} />
             }}</For>
-        </Show> */}
+        </Show>
         <div class="legend_toggle_btn" onClick={(e) => {if(e.button === 0) setShow(!show())}}>
             <Icon 
                 classList={{icon:false, icon_no_hover:true}} 
@@ -240,20 +303,11 @@ const closeProps = {width: 16, height: 16, viewBox:"-4 -4 26 26"}
 const eyeProps = {width: 20, height: 16, viewBox:"2 2 20 20"}
 // const menuProps = {width: 18, height: 18, style:{padding:"0px 2px"}}
 
-interface tag_props {
-    name:string
-    deletable:boolean
-    objVisibility: Accessor<boolean>
-    setObjVisibility: (arg:boolean) => void
-    setMenuVisibility:Setter<boolean> | undefined
-    menuVisibility:Accessor<boolean> | undefined
-    innerHtml: Accessor<string | undefined> 
-}
-
 /**
  * A Label for a single Indicator.
  */
-function IndicatorTag(props:tag_props){
+function IndicatorTag(props: { ind: indicator } ){
+    const ind = props.ind
     const [hover, setHover] = createSignal<boolean>(false)
 
     //Following events provide expected show/hide click behavior over the overlay menu
@@ -269,20 +323,20 @@ function IndicatorTag(props:tag_props){
             onmouseenter={()=>setHover(true)} 
             onmouseleave={()=>setHover(false)}
         >
-            <div class="text" innerHTML={props.name + (props.innerHtml() !== undefined? " • " + props.innerHtml(): "")}/>
+            <div class="text" innerHTML={ind.name + (ind.labelHtml() !== undefined? " • " + ind.labelHtml(): "")}/>
             <Show when={hover()}>
                 <Icon {...eyeProps}
-                    icon={props.objVisibility()? icons.eye_normal : icons.eye_crossed} 
-                    onClick={(e) => {if (e.button === 0) props.setObjVisibility(!props.objVisibility())}}
+                    icon={ind.visibilitySignal[0]()? icons.eye_normal : icons.eye_crossed} 
+                    onClick={(e) => {if (e.button === 0) ind.setVisibility(!ind.visibilitySignal[0]())}}
                 /> {/* onClk => indicator visibility toggle */}
 
-                <Show when={props.setMenuVisibility !== undefined}>
+                <Show when={ind.setMenuVisibility !== undefined}>
                     <Icon icon={icons.settings_small} {...gearProps}
-                        onclick={(e) => {if (e.button === 0 && props.setMenuVisibility && props.menuVisibility)props.setMenuVisibility(!props.menuVisibility())}}
-                    />
+                        onclick={(e) => {if (e.button === 0 && ind.setMenuVisibility && ind.menuVisibility) ind.setMenuVisibility(!ind.menuVisibility())}}
+                    /> {/* onClk => Open Menu If Present */}
                 </Show>
 
-                <Show when={props.deletable}>
+                <Show when={ind.removable}>
                     <Icon icon={icons.close} {...closeProps}/> {/* onClk => delete *Through window.api* */}
                 </Show>
 
@@ -292,3 +346,5 @@ function IndicatorTag(props:tag_props){
     ) 
 
 }
+
+//#endregion

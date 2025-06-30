@@ -3,8 +3,9 @@
  * This also defines a class that wraps around the SeriesAPI instances created to extend their behavior.
  */
 import * as lwc from "lightweight-charts";
-import { Accessor, createSignal, Setter } from "solid-js";
-import { PrimitiveBase } from "../primitive-plugins/primitive-base";
+import { ORDERABLE, Orderable, treeLeafInterface } from "../../../tsx/widget_panels/object_tree";
+import { charting_frame } from "../charting_frame";
+import { indicator } from "../indicator";
 import { RoundedCandleSeriesData, RoundedCandleSeriesImpl, RoundedCandleSeriesOptions, RoundedCandleSeriesPartialOptions } from "./rounded-candles-series/rounded-candles-series";
 
 
@@ -37,6 +38,19 @@ const SERIES_NAME_MAP = new Map<Series_Type, string>([
     [Series_Type.CANDLESTICK,'Candlestick'],
     // [Series_Type.HLC_AREA:'High-Low Area'],
     [Series_Type.ROUNDED_CANDLE,'Rounded-Candle']
+])
+
+
+const SERIES_TYPE_MAP = new Map<Series_Type, lwc.SeriesDefinition<lwc.SeriesType>>([
+    [Series_Type.WhitespaceData, lwc.LineSeries],
+    [Series_Type.SingleValueData, lwc.LineSeries],
+    [Series_Type.LINE, lwc.LineSeries],
+    [Series_Type.AREA, lwc.AreaSeries],
+    [Series_Type.BASELINE, lwc.BaselineSeries],
+    [Series_Type.HISTOGRAM, lwc.HistogramSeries],
+    [Series_Type.BAR, lwc.BarSeries],
+    [Series_Type.OHLC, lwc.CandlestickSeries],
+    [Series_Type.CANDLESTICK, lwc.CandlestickSeries],
 ])
 
 export type BarSeries = SeriesBase<'Bar'>
@@ -108,79 +122,62 @@ export interface SeriesPartialOptionsMap_EXT extends Exclude<lwc.SeriesPartialOp
  * 
  * Docs: https://tradingview.github.io/lightweight-charts/docs/api/interfaces/ISeriesApi
  */
-export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>> {
-    _chart: lwc.IChartApi
-    _series: lwc.ISeriesApi<lwc.SeriesType>
+export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>> implements Orderable{
+    [ORDERABLE]:true = true;
+    private _series: lwc.ISeriesApi<lwc.SeriesType>
+    private _indicator: indicator
 
-    _id: string
-    _indicator_id: string
-    _parent_name: string | undefined
-    _name: string | undefined
+    private _id: string
     s_type: Series_Type
+    _name: string | undefined
 
     _markers: Map<string, lwc.SeriesMarker<lwc.Time>> | undefined
     _markers_plugin: lwc.ISeriesMarkersPluginApi<lwc.Time> | undefined
     _pricelines: Map<string, lwc.IPriceLine> | undefined
 
-    //Solid-JS signals so UI can be updated when Primitives are added/removed
-    primitiveIds: Accessor<string[]>
-    setPrimitiveIds: Setter<string[]>
+    leafProps: treeLeafInterface
 
     constructor(
-        _id:string, 
-        _indicator_id:string,
-        _name:string | undefined,
-        _parent_name: string | undefined,
-        _type:Series_Type, 
-        _chart:lwc.IChartApi
+        id: string,
+        display_name: string | undefined,
+        s_type: Series_Type,
+        _indicator: indicator
     ){
-        this._id = _id
-        this._indicator_id = _indicator_id
-        this._name = _name
-        this._parent_name = _parent_name
-        this.s_type = _type
-        this._chart = _chart
-        this._series = this._create_series(_type)
+        this._id = id
+        this.s_type = s_type
+        this._indicator = _indicator
+        this._name = display_name
+        this._series = this._create_series(s_type)
 
-        const sig = createSignal<string[]>([])
-        this.primitiveIds = sig[0]; this.setPrimitiveIds = sig[1]; 
-
-        
-        console.log(this._series)
+        console.log(this)
+        this.leafProps = {
+            id:this.id,
+            leafTitle:this.name,
+            obj: this
+        }
     }
     
     private _create_series(series_type: Series_Type): lwc.ISeriesApi<lwc.SeriesType> {
+        let _lwc_type = SERIES_TYPE_MAP.get(series_type)
+        if (_lwc_type) return this.chart.addSeries(_lwc_type, undefined, this.pane.paneIndex())
+
+        // ---- Custom Series Types ---- //
         switch (series_type) {
-            // ---- Base Series Types ---- //
-            case (Series_Type.LINE):
-                return this._chart.addSeries(lwc.LineSeries)
-            case (Series_Type.AREA):
-                return this._chart.addSeries(lwc.AreaSeries)
-            case (Series_Type.HISTOGRAM):
-                return this._chart.addSeries(lwc.HistogramSeries)
-            case (Series_Type.BASELINE):
-                return this._chart.addSeries(lwc.BaselineSeries)
-            case (Series_Type.BAR):
-                return this._chart.addSeries(lwc.BarSeries)
-            case (Series_Type.OHLC):
-            case (Series_Type.CANDLESTICK):
-                return this._chart.addSeries(lwc.CandlestickSeries)
-            // ---- Custom Series Types ---- //
+            // Add Custom Series Switch statement so accommodations don't need to be made on the Python side
             case (Series_Type.ROUNDED_CANDLE):
-                //Ideally custom series objects will get baked directly into the TS Code like this
-                //So accomodations don't need to be made on the Python side
-                return this._chart.addCustomSeries(new RoundedCandleSeriesImpl())
-            default: //Catch-all, primarily reached by WhitespaceSeries'
-                return this._chart.addSeries(lwc.LineSeries)
+                return this.chart.addCustomSeries(new RoundedCandleSeriesImpl(), undefined, this.pane.paneIndex())
         }
+
+        throw TypeError(`Unknown Series Type: ${series_type}`)
     }
 
-    get id(): string {return this._id}
-    get name():string { 
-        let display_name = this._parent_name? this._parent_name + ' : ' : ''
-        display_name += this._name? this._name : SERIES_NAME_MAP.get(this.s_type)
-        return display_name
-    }
+    get id() : string {return this._id}
+    get indicator(): indicator {return this._indicator}
+    get index(): number {return this._series.seriesOrder()}
+    get name() : string { return this._name? this._name : SERIES_NAME_MAP.get(this.s_type) ?? ''}
+    get pane() : lwc.IPaneApi<lwc.Time> { return this._indicator.pane }
+    get frame() : charting_frame { return this._indicator.frame }
+    get chart() : lwc.IChartApi { return this._indicator.frame._chart }
 
     //#region ---- ---- Markers Functions ---- ----
 
@@ -272,23 +269,13 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
     }
     //#endregion
 
-    reorderPrimitives(from:number, to:number){ 
-        this.primitiveWrapperArray.splice(to, 0, ...this.primitiveWrapperArray.splice(from, 1))
-        //Update the order of Primitive IDs to propogate the Update Back to the Object Tree
-        this.setPrimitiveIds(Array.from(this.primitives, (prim) => prim.id))
-    }
-
-    /* Removes this series and all it's sub components from the chart. This is irreversible */
-    remove(){
-        this._chart.removeSeries(this._series)
-    }
 
     /* Changes the type of series that is displayed. Data must be given since the DataType may change */
     change_series_type(series_type:Series_Type, data:SeriesData[]){
         if (series_type === this.s_type) return
 
         const current_zindex = this._series.seriesOrder()
-        const current_range = this._chart.timeScale().getVisibleRange()
+        const current_range = this.chart.timeScale().getVisibleRange()
         
         this.remove()
         this._series = this._create_series(series_type)
@@ -300,33 +287,20 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
 
         //Setting Data Changes Visible Range, set it back.
         if (current_range !== null)
-            this._chart.timeScale().setVisibleRange(current_range)
+            this.chart.timeScale().setVisibleRange(current_range)
     }
 
     // #region -------- lightweight-chart ISeriesAPI functions --------
+    remove(){ this.chart.removeSeries(this._series) }
     priceScale(): lwc.IPriceScaleApi {return this._series.priceScale()}
     applyOptions(options: SeriesPartialOptionsMap_EXT[T]) {this._series.applyOptions(options)}
     options(): Readonly<SeriesOptionsMap_EXT[T]> {return this._series.options() as SeriesOptionsMap_EXT[T]}
 
     // data() may not work as intended. Extra parameters of data that don't match the series type are deleted
     // e.g. High/Low/Close/Open values are deleted when the struct is applied to a single_value series type
-    data(): readonly SeriesDataTypeMap_EXT[T][] {return this._series.data()} 
-    update(bar: SeriesDataTypeMap_EXT[T]) {this._series.update(bar)}
-    setData(data: SeriesDataTypeMap_EXT[T][]) {this._series.setData(data)}
-
-    //@ts-ignore: _series.Jn.kh === seriesAPI._series._primitives[] for Lightweight-Charts v5.0.7
-    get primitiveWrapperArray(): SeriesPrimitiveWrapper[] { return this._series.Jn.kh }
-    //@ts-ignore: _series.Jn.kh[].ah === seriesAPI._series._primitives[].PrimitiveBase for Lightweight-Charts v5.0.7
-    get primitives(): PrimitiveBase[] { return Array.from(this.primitiveWrapperArray, (wrapper) => wrapper.ah)}
-
-    attachPrimitive(primitive: PrimitiveBase) {
-        this._series.attachPrimitive(primitive)
-        this.setPrimitiveIds([...this.primitiveIds(), primitive._id])
-    }
-    detachPrimitive(primitive: PrimitiveBase) {
-        this._series.detachPrimitive(primitive)
-        this.setPrimitiveIds(this.primitiveIds().filter(prim_id => prim_id !== primitive._id))
-    }
+    data(): readonly SeriesDataTypeMap_EXT[T][] { return this._series.data() } 
+    update(bar: SeriesDataTypeMap_EXT[T]) { this._series.update(bar) }
+    setData(data: SeriesDataTypeMap_EXT[T][]) { this._series.setData(data) }
 
     /* 
      * These can be uncommented to be used. Currently they are commented out since they are 

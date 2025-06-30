@@ -37,21 +37,21 @@ export function DraggableSelection(props:drag_section_props){
     return  (
         <DragDropProvider onDragStart={onDragStart} onDragEnd={onDragEnd} collisionDetector={closestCenter}>
             <DragDropSensors/>
-            <ConstrainDragAxis/>
+            <ConstrainVerticalDrag/>
             <div {...div_props}>
                 <SortableProvider ids={props.ids?.() ?? []}>
                     {props.children}
                 </SortableProvider>
             </div>
             <Show when={activeItem()} keyed>
-                {/* This Drag Overlay Drops an Anonymous Div onto the Body.. Ugh. I tried to keep the El Tree Clean.. */}
+                {/* Unfortunately this gets placed in the body of the DOM, not with the other draggable objects*/}
                 <DragOverlay>{props.overlay_child?.({id:activeItem()}) ?? undefined}</DragOverlay>
             </Show>
         </DragDropProvider>
     )
 }
 
-function ConstrainDragAxis(){
+export function ConstrainVerticalDrag(){
     const DragCTX = useDragDropContext()?.[1]
     if (DragCTX === undefined) return
     const { onDragStart, onDragEnd, addTransformer, removeTransformer } = DragCTX

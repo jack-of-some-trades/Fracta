@@ -22,10 +22,10 @@ export function PaneLegend(props:legend_props){
             
                 return (
                     <IndicatorTag
-                        name={indObj.name !== ""? indObj.name : indObj.type } 
-                        deletable={indObj.id != "i_XyzZy"} //Cannot Delete Main Series
+                        name={indObj._name !== ""? indObj._name : indObj.type } 
+                        deletable={indObj.removable}
                         innerHtml={indObj.labelHtml}
-                        objVisibility={indObj.objVisibility[0]}
+                        objVisibility={indObj.visibilitySignal[0]}
                         setObjVisibility={indObj.setVisibility.bind(indObj)}
                         setMenuVisibility={indObj.setMenuVisibility}
                         menuVisibility={indObj.menuVisibility}

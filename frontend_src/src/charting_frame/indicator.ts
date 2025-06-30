@@ -1,20 +1,32 @@
+import { IPaneApi, Time } from "lightweight-charts";
 import { Accessor, createSignal, Setter, Signal } from "solid-js";
 import { createStore, SetStoreFunction } from "solid-js/store";
 import { IndicatorOpts } from "../../tsx/charting_frame/indicator_options";
+import { ORDERABLE, ORDERABLE_SET, ReorderableSet, treeBranchInterface, treeLeafInterface } from "../../tsx/widget_panels/object_tree";
 import { OverlayCTX } from "../../tsx/window/overlay_manager";
-import { chart_frame } from "./charting_frame";
+import { charting_frame } from "./charting_frame";
 import { PrimitiveBase } from "./primitive-plugins/primitive-base";
+import { primitive_set } from "./primitive-plugins/primitive-set";
 import { primitives } from "./primitive-plugins/primitives";
 import * as s from "./series-plugins/series-base";
 
-export class indicator {
-    id: string
-    type: string
-    name: string
-    private frame: chart_frame
-    private _pane_index: number
+const MAIN_TIMESERIES_ID = "i_XyzZy"
+const INDICATOR = Symbol('Indicator');
+export function isIndicator(obj: unknown): obj is indicator {
+    return ( obj !== null && typeof obj === 'object' && INDICATOR in obj )
+}
 
-    objVisibility: Signal<boolean>
+export class indicator implements ReorderableSet {
+    [INDICATOR]: true = true;
+    [ORDERABLE]: true = true;
+    [ORDERABLE_SET]: true = true;
+
+    _id: string
+    type: string
+    _name: string
+    private _pane: IPaneApi<Time>
+    private _frame: charting_frame
+
     labelHtml: Accessor<string | undefined>
     setLabelHtml: Setter<string | undefined>
 
@@ -23,30 +35,58 @@ export class indicator {
     menu_struct: object | undefined
     setOptions: SetStoreFunction<object> | undefined
 
+    visibilitySignal: Signal<boolean>
     menuVisibility: Accessor<boolean> | undefined
     setMenuVisibility: Setter<boolean> | undefined
+    
+    attached: Accessor<(s.SeriesBase_T | primitive_set)[]>
+    private setAttached: Setter<(s.SeriesBase_T | primitive_set)[]>
 
     series = new Map<string, s.SeriesBase_T>()
-    private visiblity = new Map<string, boolean>()
     private primitives = new Map<string, PrimitiveBase>()
+    private visibilityMemory = new Map<string, boolean>()
 
-    constructor(id: string, type: string, name: string, outputs: {[key:string]:string}, frame: chart_frame) {
-        this.id = id
+    leafProps: treeLeafInterface
+    branchProps: treeBranchInterface
+
+    constructor(
+        id: string, 
+        type: string, 
+        display_name: string,
+        outputs: {[key:string]:string}, 
+        frame: charting_frame
+    ){
+        this._id = id
         this.type = type
-        this.name = name
-        this.frame = frame
+        this._name = display_name
+        // Auto Append Self to Pane 0 at creation
+        this._pane = frame.paneAPIs[0]
+        this._frame = frame
         this.outputs = outputs
-        this._pane_index = 0
 
-        const objVisibility = createSignal<boolean>(true)
-        this.objVisibility = objVisibility
-        this.setVisibility.bind(this)
+        this.visibilitySignal = createSignal<boolean>(true)
+
+        const orderables = createSignal<(s.SeriesBase_T | primitive_set)[]>([])
+        this.attached = orderables[0]; this.setAttached = orderables[1]
         
         const labelHtml = createSignal<string | undefined>(undefined)
-        this.labelHtml = labelHtml[0]
-        this.setLabelHtml = labelHtml[1]
+        this.labelHtml = labelHtml[0]; this.setLabelHtml = labelHtml[1]
 
         // this.frame.attach_indicator_to_legend(this)
+
+        this.leafProps = {
+            id:this.id,
+            leafTitle:this.name,
+            obj: this
+        }
+        this.branchProps = {
+            id:this.id,
+            branchTitle: this.name,
+            dropDownMode: 'toggleable',
+            reorderables: this.attached,
+            reorder: this.reorder.bind(this),
+            moveTo: ()=>{}
+        }
     }
 
     setLabel(label:string){this.setLabelHtml(label !== ""? label : undefined)}
@@ -60,27 +100,39 @@ export class indicator {
             ser.remove()
         })
         this.primitives.forEach((prim, key) => {
-            this.frame.whitespace_series.detachPrimitive(prim)
+            this._frame.whitespace_series.detachPrimitive(prim)
         })
         //Remove from the pane that is currently displaying the indicator
         // this.frame.detach_indicator_from_legend(this)
     }
 
     setVisibility(arg:boolean){
-        this.objVisibility[1](arg)
+        this.visibilitySignal[1](arg)
         const _maps = [this.series, this.primitives]
         // This only works because the structure of primitives and series are similar enough
         for (let i = 0; i < _maps.length; i++)
 
             if (arg) for (const [k, v] of _maps[i].entries()){
-                v.applyOptions({visible: this.visiblity.get(k)??true})
+                v.applyOptions({visible: this.visibilityMemory.get(k)??true})
             }
 
             else for (const [k, v] of _maps[i].entries()){
-                this.visiblity.set(k, v.options().visible)
+                this.visibilityMemory.set(k, v.options().visible)
                 v.applyOptions({visible: false})
             }
     }
+
+    reorder(from:number, to:number){
+        console.log(`Reorder Series from: ${from}, to: ${to}`)
+    }
+
+    get id(): string { return this._id }
+    get pane(): IPaneApi<Time> { return this._pane }
+    get index(): number { return 0 }
+    get length(): number { return 0 }
+    get frame(): charting_frame { return this._frame }
+    get name(): string { return this._name ? this._name : this.type }
+    get removable(): boolean { return this._id !== MAIN_TIMESERIES_ID }
 
     //#region ------------------------ Python Interface ------------------------ //
 
@@ -88,7 +140,9 @@ export class indicator {
     //only encompassed being called from python, not from within JS.
 
     protected add_series(_id: string, _type: s.Series_Type, _name:string|undefined = undefined) {
-        this.series.set(_id, new s.SeriesBase(_id, this.id, _name, this.name !== "" ? this.name : this.type, _type, this.frame.chart))
+        const _ser = new s.SeriesBase(_id, _name, _type, this)
+        this.series.set(_id, _ser)
+        this.setAttached([...this.attached(), _ser])
     }
 
     protected remove_series(_id: string) {
@@ -97,22 +151,23 @@ export class indicator {
 
         series.remove()
         this.series.delete(_id)
+        this.setAttached(this.attached().filter((_ser) => _ser !== series))
     }
 
     protected add_primitive(_id: string, _type: string, params:object) {
         let primitive_type = primitives.get(_type)
         if (primitive_type === undefined) return
-        let new_obj = new primitive_type(this.id + _id, params)
+        let new_obj = new primitive_type(this._id + _id, params)
 
         this.primitives.set(_id, new_obj)
-        this.frame.whitespace_series.attachPrimitive(new_obj)
+        this._frame.whitespace_series.attachPrimitive(new_obj)
     }
 
     protected remove_primitive(_id: string) {
         let _obj = this.primitives.get(_id)
         if (_obj === undefined) return
 
-        this.frame.whitespace_series.detachPrimitive(_obj) 
+        this._frame.whitespace_series.detachPrimitive(_obj) 
         this.primitives.delete(_id)
     }
     
@@ -141,7 +196,7 @@ export class indicator {
         const [options, setOptions] = createStore<object>(options_in)
         this.setOptions = setOptions
         this.menu_struct = menu_struct
-        this.menu_id = `${this.frame.id}_${this.id}_options`
+        this.menu_id = `${this._frame.id}_${this._id}_options`
 
         //See EoF for Explanation of this second AttachOverlay Call.
         OverlayCTX().attachOverlay(this.menu_id, undefined, menuVisibility)
@@ -154,9 +209,9 @@ export class indicator {
                 menu_struct: this.menu_struct,
                 close_menu: () => menuVisibility[1](false),
 
-                container_id: this.frame.id.substring(0,6),
-                frame_id: this.frame.id.substring(0,13),
-                indicator_id: this.id
+                container_id: this._frame.id.substring(0,6),
+                frame_id: this._frame.id.substring(0,13),
+                indicator_id: this._id
             }),
             menuVisibility
         )

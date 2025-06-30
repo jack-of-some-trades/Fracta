@@ -2,7 +2,7 @@
 import { createEffect, createSignal, For, on, onMount, Show } from "solid-js";
 import { ContainerCTX } from "../window/container";
 
-import { chart_frame } from "../../src/charting_frame/charting_frame";
+import { charting_frame } from "../../src/charting_frame/charting_frame";
 import { frame } from "../../src/window/frame";
 import { num_frames } from "../../src/window/layouts";
 import { DraggableSelection, OverlayItemTag, SelectableItemTag } from "../generic_elements/draggable_selector";
@@ -73,6 +73,6 @@ function AbstractFrameTag(props:{frame:frame}){
     return undefined
 }
 
-function ChartingFrameTag(props:{frame:chart_frame}){
+function ChartingFrameTag(props:{frame:charting_frame}){
     return undefined
 }
