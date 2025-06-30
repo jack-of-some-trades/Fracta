@@ -4,7 +4,7 @@
  * due to circular import errors.
  */
 
-import { PrimitiveBase } from '../primitive-base';
+import { PrimitiveBase } from './primitive-base';
 import { TrendLine } from './trend-line/trend-line';
 
 

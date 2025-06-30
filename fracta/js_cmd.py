@@ -254,13 +254,13 @@ def delete_indicator(frame_id: str, indicator_id: str) -> str:
 # Retreives an indicator object from a frame to manipulate
 def indicator_preamble(frame_id: str, indicator_id: str) -> str:
     # _ind is a workspace var defined at the window level in index.ts for use here
-    return f"_ind = {frame_id}.indicators.get('{indicator_id}');"
+    return f"_ind = {frame_id}.attached.get('{indicator_id}');"
 
 
 # Retreives a series object from an indicator to manipulate
 def series_preamble(frame_id: str, indicator_id: str, series_id: str) -> str:
     # _ind is a workspace var defined at the window level in index.ts for use here
-    return f"_ser = {frame_id}.indicators.get('{indicator_id}').series.get('{series_id}');"
+    return f"_ser = {frame_id}.attached.get('{indicator_id}').series.get('{series_id}');"
 
 
 def indicator_set_menu(frame_id: str, indicator_id: str, menu_struct, options) -> str:

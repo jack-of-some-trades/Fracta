@@ -51,7 +51,7 @@ function createTrendLine(e:MouseEvent){
     
     if (t === null || p === null){
         console.error('Failed to create TrendLine, Price or Time invalid')
-        new_line._pane?.remove_primitive(new_line._id)
+        new_line._frame?.remove_primitive(new_line._id)
         creatingTrendLine[1](false)
         return
     }
@@ -69,7 +69,7 @@ function createTrendLine(e:MouseEvent){
         if (e.key !== "Escape") return //Escape Key Listener
         
         new_line.chart.unsubscribeCrosshairMove(bound_update_ref)
-        new_line._pane?.remove_primitive(new_line._id)
+        new_line._frame?.remove_primitive(new_line._id)
         creatingTrendLine[1](false)
     }, {signal:mouse_move_abort.signal})
 

@@ -13,9 +13,10 @@ import {
     SingleValueData,
     Time
 } from 'lightweight-charts';
+import { ORDERABLE, Orderable, treeLeafInterface } from '../../../tsx/widget_panels/object_tree';
 import { binarySearch } from '../../types';
+import { charting_frame } from '../charting_frame';
 import { ensureDefined } from '../helpers/assertions';
-import { pane } from '../pane';
 
 export interface primitiveOptions {
     visible: boolean
@@ -34,12 +35,15 @@ export interface primitiveOptions {
  * 
  * Docs: https://tradingview.github.io/lightweight-charts/docs/plugins/series-primitives
  */
-export abstract class PrimitiveBase implements ISeriesPrimitive<Time> {
-    _pane: pane | undefined
+export abstract class PrimitiveBase implements ISeriesPrimitive<Time>, Orderable {
+    [ORDERABLE]:true = true
+    _frame: charting_frame | undefined
     protected _chart: IChartApi | undefined
     protected _series: ISeriesApi<keyof SeriesOptionsMap> | undefined
+    leafProps: treeLeafInterface
 
     _id: string = ""
+    _name: string | undefined = undefined
     _type: string = "null"
     _options: primitiveOptions
 
@@ -62,9 +66,15 @@ export abstract class PrimitiveBase implements ISeriesPrimitive<Time> {
         this._id = _id
         this._type = _type
         this._options = _opts
+        this.leafProps = {
+            id: _id,
+            obj: this,
+            leafTitle: this.name
+        }
     }
 
     get id(): string {return this._id}
+    get name(): string {return this._name ?? this._type}
     get chart(): IChartApi { return ensureDefined(this._chart); }
     get series(): ISeriesApi<keyof SeriesOptionsMap> { return ensureDefined(this._series); }
     options(): primitiveOptions {return structuredClone(this._options)}
@@ -88,8 +98,8 @@ export abstract class PrimitiveBase implements ISeriesPrimitive<Time> {
             if (this.onClick) { this._chart.subscribeClick(this._fireClick); }
             if (this.onDblClick) { this._chart.subscribeDblClick(this._fireDblClick); }
             if (this.onCrosshairMove) { this._chart.subscribeCrosshairMove(this._fireCrosshairMove); }
-            if (this.onMouseDown) { this._chart.chartElement().addEventListener('mousedown', this._fireMouseDown); }
-            if (this.onMouseUp) { this._chart.chartElement().addEventListener('mouseup', this._fireMouseUp); }
+            if (this.onMouseDown) { this._frame?.chart_el.addEventListener('mousedown', this._fireMouseDown); }
+            if (this.onMouseUp) { this._frame?.chart_el.addEventListener('mouseup', this._fireMouseUp); }
         }
 
         this._requestUpdate = requestUpdate;
@@ -103,8 +113,8 @@ export abstract class PrimitiveBase implements ISeriesPrimitive<Time> {
         if (this.onClick) { this._chart?.unsubscribeClick(this._fireClick); }
         if (this.onDblClick) { this._chart?.unsubscribeDblClick(this._fireDblClick); }
         if (this.onCrosshairMove) { this._chart?.unsubscribeCrosshairMove(this._fireCrosshairMove); }
-        if (this.onMouseDown) { this._chart?.chartElement().removeEventListener('mousedown', this._fireMouseDown); }
-        if (this.onMouseUp) { this._chart?.chartElement().removeEventListener('mouseup', this._fireMouseUp); }
+        if (this.onMouseDown) { this._frame?.chart_el.removeEventListener('mousedown', this._fireMouseDown); }
+        if (this.onMouseUp) { this._frame?.chart_el.removeEventListener('mouseup', this._fireMouseUp); }
 
         this._chart = undefined;
         this._series = undefined;
@@ -115,8 +125,8 @@ export abstract class PrimitiveBase implements ISeriesPrimitive<Time> {
     // lexical 'this' scope (due to the use of the arrow function)
     // and to ensure its reference stays the same, so we can unsubscribe later.
     private _fireDataUpdated = (scope: DataChangedScope) => { if (this.onDataUpdate) { this.onDataUpdate(scope); }}
-    private _fireMouseDown = (e: MouseEvent) => { if (this.onMouseDown && this._pane) this.onMouseDown(this._pane.make_event_params(e)); }
-    private _fireMouseUp = (e: MouseEvent) => {  if (this.onMouseUp && this._pane) this.onMouseUp(this._pane.make_event_params(e)); }
+    private _fireMouseDown = (e: MouseEvent) => { if (this.onMouseDown && this._frame) this.onMouseDown(this._frame.make_event_params(e)); }
+    private _fireMouseUp = (e: MouseEvent) => {  if (this.onMouseUp && this._frame) this.onMouseUp(this._frame.make_event_params(e)); }
     private _fireClick = (e: MouseEventParams<Time>) => { if (this.onClick) { this.onClick(e); }}
     private _fireDblClick = (e: MouseEventParams<Time>) => { if (this.onDblClick) { this.onDblClick(e); }}
     private _fireCrosshairMove = (e: MouseEventParams<Time>) => { if (this.onCrosshairMove) { this.onCrosshairMove(e); }}

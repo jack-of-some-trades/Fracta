@@ -1,7 +1,7 @@
 import { Accessor, Setter } from "solid-js"
 import { ContainerCTX } from "../../tsx/window/container"
 import { layout_display } from "../../tsx/window/layouts"
-import { chart_frame } from "../charting_frame/charting_frame"
+import { charting_frame } from "../charting_frame/charting_frame"
 import { frame } from "./frame"
 import { Container_Layouts, flex_frame, layout_switch, num_frames, Orientation, resize_sections } from "./layouts"
 
@@ -13,9 +13,9 @@ export type update_tab_func = (
 
 
 // This Must Match FrameTypes Enum in window.py
-type frame_subclasses = typeof chart_frame
+type frame_subclasses = typeof charting_frame
 const FrameTypes:{[key:number]: frame_subclasses} = {
-    2: chart_frame
+    2: charting_frame
 }
 
 /**

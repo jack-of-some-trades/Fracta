@@ -315,7 +315,7 @@ class PyWv(View):
         self.pyweb_window.events.maximized += self._on_maximized
         self.pyweb_window.events.restored += self._on_restore
 
-        webview.start(debug=debug, private_mode=False)
+        webview.start(debug=debug, private_mode=True)
         self.stop_event.set()
 
     def _handle_eval_js(self, cmd: str, promise: Optional[Callable] = None):

@@ -119,5 +119,41 @@ export function binarySearch(arr:Array<any>, el:any, compare_fn:(a:any, b:any) =
     return ~m;
 }
 
+
+/**
+ * @param style RGBA or Hex Color String
+ * @param opacity Opacity bounded [0, 1]
+ * @returns rgba Color string with opacity applied if not given
+ */
+export function applyOpacity(style: string, opacity?: number): string | undefined {
+  const colorValue = style.trim();
+  if (!colorValue) return undefined;
+
+  const rgbaMatch = colorValue.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+  if (rgbaMatch) {
+    const [, r, g, b, a] = rgbaMatch;
+    const finalOpacity = a !== undefined ? a : opacity ?? 1;
+    return `rgba(${r}, ${g}, ${b}, ${finalOpacity})`;
+  }
+
+  const hexMatch = colorValue.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hexMatch) {
+    let hex = hexMatch[1];
+    if (hex.length === 3) {
+      hex = hex.split('').map((c) => c + c).join('');
+    }
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    const a = parseInt(hex.slice(6, 8), 16) / 255;
+    if (isNaN(a))
+        return `rgba(${r}, ${g}, ${b}, ${opacity ?? 1})`;
+    else
+        return `rgba(${r}, ${g}, ${b}, ${a})`;
+  }
+
+  return undefined;
+}
+
 //#endregion
 
