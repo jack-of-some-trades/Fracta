@@ -44,16 +44,22 @@ function WidgetIcon(props:{icon:icons} & JSX.SvgSVGAttributes<SVGSVGElement> ){
 
 export function WidgetPanel(divProps:JSX.HTMLAttributes<HTMLDivElement> ){
     const resizePanel = WidgetPanelSizeCTX().setSize
+    const [resizing, setResizing] = createSignal<boolean>(false)
+    let ref = document.createElement('div')
 
     const resizeWidgetPanel = (e:MouseEvent) => {
         resizePanel(window.innerWidth - (e.clientX + WIDGET_BAR_WIDTH + WIDGET_PANEL_MARGIN))
     }
 
     const onMouseDown = (e:MouseEvent) => {
-        if (e.offsetX > 6) return
+        if (e.target !== ref) return
+        setResizing(true)
         // These do still cleanup when the move event sticks to the window despite lifting the mouse button
         document.addEventListener('mousemove', resizeWidgetPanel)
-        document.addEventListener('mouseup', () => document.removeEventListener('mousemove', resizeWidgetPanel), {once:true})
+        document.addEventListener('mouseup', () => {
+            setResizing(false)
+            document.removeEventListener('mousemove', resizeWidgetPanel)
+        }, {once:true})
     }
 
     return <div class='layout_main widget_panel' {...divProps} onMouseDown={onMouseDown}>
@@ -61,6 +67,11 @@ export function WidgetPanel(divProps:JSX.HTMLAttributes<HTMLDivElement> ){
             <Match when={selectedWidget() === icons.frame_editor}><FrameViewer/></Match>
             <Match when={selectedWidget() === icons.object_tree}><ObjectTree/></Match>
         </Switch>
+        <div 
+            ref={ref} 
+            class='widget_resize_handle'
+            style={{"background-color": resizing()? 'var(--hover-color)' : ""}}
+        />
     </div>
 }
 

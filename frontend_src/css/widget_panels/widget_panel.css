@@ -31,22 +31,26 @@
     scrollbar-color: var(--accent-color) transparent;
 }
 
-.widget_panel::after {
+.widget_panel .widget_resize_handle {
     content:'';
     position: absolute;
+    top: 0;
     left: 0;
     width: 6px;
     height: 100%;
     cursor: ew-resize;
 }
 
+.widget_panel .widget_resize_handle:hover {
+    background-color: var(--hover-color);
+}
 
 /* ------- Widget Panel Title Element ------- */
 
 .widget_panel .widget_panel_title {
     color: var(--text-color);
     font-family: var(--font);
-    text-align: left;
+    text-align: center;
     text-wrap: nowrap;
     user-select: none;
 
