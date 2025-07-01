@@ -263,7 +263,7 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
     
     removeAllPriceLines(){
         if (this._pricelines == undefined) return
-        //@ts-ignore: _series.Jn.bh === seriesAPI._series.CustomPriceLines[] array for Lightweight-Charts v5.0.7
+        //@ts-ignore: _series.Jn.bh === seriesAPI.Series<SeriesType>.CustomPriceLines[] array for Lightweight-Charts v5.0.8
         this._series.Jn.bh = []
         delete this._pricelines
     }
@@ -315,21 +315,3 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
     // unsubscribeDataChanged(handler: lwc.DataChangedHandler) {this._series.unsubscribeDataChanged(handler)}
     // #endregion
 }
-
-
-/**
- * Dead Notes on Draw order of Series and Primitive objects for the Lightweight-Charts Library
- * 
- * To reorder Series (after applying them to the screen) you need to change the _zOrder:number 
- * within some/all of the series applied to the lwc 'Pane' (not this lib's pane) which displays 
- * the series objects. To get a reference to this pane's series objects call 
- * chart._chartWidget._model._panes[0]._dataSources[]: (chart.Df.ts.zu[].ul[])** for lwc v5.0.7
- * 
- * With this array, you can set _dataSources[i]._zOrder to the desired value. (chart.Df.ts.zu[0].ul[i].rs)**
- * The _zOrder value can be a duplicate, negative, and have gaps between other series values.
- * From here the pane._cachedOrderedSources needs to be set to null (chart.Df.ts.zu[0].dl = null)** 
- * Then a redraw of the chart invoked. chart._chartWidget._model.lightUpdate() ( chart.Df.ts.ar() )**
- * 
- * To Re-order primitives you need to re-order the series' _primitives array That's Part of the Series Object.
- * chart._chartWidget._model._serieses[i]._primitives (chart.Df.ts.Lu[i].kh)
- */

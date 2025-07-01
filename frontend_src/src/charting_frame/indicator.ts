@@ -127,9 +127,9 @@ export class indicator implements ReorderableSet {
     }
 
     get id(): string { return this._id }
-    get pane(): IPaneApi<Time> { return this._pane }
     get index(): number { return 0 }
     get length(): number { return 0 }
+    get pane(): IPaneApi<Time> { return this._pane }
     get frame(): charting_frame { return this._frame }
     get name(): string { return this._name ? this._name : this.type }
     get removable(): boolean { return this._id !== MAIN_TIMESERIES_ID }
@@ -172,9 +172,7 @@ export class indicator implements ReorderableSet {
     }
     
     protected update_primitive(_id: string, params:object) {
-        let _obj = this.primitives.get(_id)
-        if (_obj === undefined) return
-        _obj.updateData(params)
+        this.primitives.get(_id)?.updateData(params)
     }
 
     applyOptions(options_in:object){

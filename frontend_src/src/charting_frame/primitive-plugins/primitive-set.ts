@@ -71,9 +71,9 @@ export class primitive_set implements ReorderableSet {
     get pane(): IPaneApi<Time> { return this._series.getPane() } 
     get frame(): charting_frame { return this._frame } 
 
-    //@ts-ignore: _series.Jn.kh === seriesAPI._series._primitives[] for Lightweight-Charts v5.0.7
+    //@ts-ignore: _series.Jn.kh === seriesAPI._series._primitives[] for Lightweight-Charts v5.0.8
     get _primitiveWrapperArray(): SeriesPrimitiveWrapper[] { return this._series.Jn.kh }
-    //@ts-ignore: _series.Jn.kh[].ah === seriesAPI._series._primitives[].PrimitiveBase for Lightweight-Charts v5.0.7
+    //@ts-ignore: _series.Jn.kh[].ah === seriesAPI._series._primitives[].PrimitiveBase for Lightweight-Charts v5.0.8
     get _primitives(): PrimitiveBase[] { return Array.from(this._primitiveWrapperArray, (wrapper) => wrapper.ah) }
 
     setData(primitive_data: SingleValueData){ this._series.setData([primitive_data]) }

@@ -37,7 +37,7 @@
     "@solid-primitives/map": "^0.7.1",
     "@thisbeyond/solid-dnd": "^0.7.5",
     "draggabilly": "^3.0.0",
-    "lightweight-charts": "5.0.7",
+    "lightweight-charts": "5.0.8",
     "solid-js": "^1.8.17"
   }
 }

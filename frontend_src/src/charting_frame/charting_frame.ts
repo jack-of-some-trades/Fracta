@@ -127,8 +127,8 @@ export class charting_frame extends frame {
         sourceEvent : lwc.TouchMouseEventData
     ):lwc.MouseEventParams<lwc.Time>{
         let renamed = {}
-        //@ts-ignore := Chart._chartWidget._getMouseEventParamsImpl() : v5.0.7
-        Object.entries(this._chart.lw.uw(index, pt, sourceEvent)).forEach(
+        //@ts-ignore := Chart._chartWidget._getMouseEventParamsImpl() : v5.0.8
+        Object.entries(this._chart.Df.xw(index, pt, sourceEvent)).forEach(
             //@ts-ignore :: Rename from Minified keys => Actual Keys
             ([k,v]) => {renamed[MouseEventKeyMap[k]] = v}
         )
@@ -417,33 +417,29 @@ function DEFAULT_CHART_OPTS(){
  * that anything that wants to subscribe to a native lwc CrosshairMove, Click, or DblClick can get the hovered series as needed.
  */
 
-/** Lightweight Charts v5.0.7 Minified Mappings
+/** Lightweight Charts v5.0.8 Minified Mappings
  * chartingframe.chart === lwc.ChariApi Object
  * 
- * this.chart.Mg === ChartApi._seriesMap: Map<SeriesApi, Series>
- * this.chart.bg === ChartApi._seriesMapReversed: Map<Series, SeriesApi>
- * this.chart.zu === ChartApi._panes: WeakMap<Pane, PaneApi>
+ * this.chart.Wf === ChartApi._chartWidget: ChartWidget
+ * this.chart.Wf.ts === ChartApi._chartWidget._model: ChartModel
+ * this.chart.Wf.ts.ar() === ChartApi._chartWidget._model.lightUpdate()
+ * this.chart.Wf.ts.qu[] === ChartApi._chartWidget._model._serieses[]: Series[]
+ * this.chart.Wf.ts.$u[] === ChartApi._chartWidget._model._panes[]: Pane[]
+ * this.chart.Df.xw() === ChartApi._chartWidget._getMouseEventParamsImpl()
  * 
- * this.chart.Df === ChartApi._chartWidget: ChartWidget
- * this.chart.Df === ChartApi._chartWidget: ChartWidget
- * this.chart.Df.ts === ChartApi._chartWidget._model: ChartModel
- * this.chart.Df.ts.ar() === ChartApi._chartWidget._model.lightUpdate()
- * this.chart.Df.ts.lu[] === ChartApi._chartWidget._model._serieses[]: Series[]
- * this.chart.Df.ts.zu[] === ChartApi._chartWidget._model._panes[]: Pane[]
- * this.chart.Df.ts.zu[].ul[] === ChartApi._chartWidget._model._panes[]._dataSources[]: IPriceDataSource[]
- * this.chart.Df.ts.zu[].dl[] === ChartApi._chartWidget._model._panes[]._cachedOrderedSources[]: IPriceDataSource[]
- * this.chart.Df.ts.zu[].ul[].rs === ChartApi._chartWidget._model._panes[]._dataSources[]._zOrder: number
- * this.chart.Df.uw() === ChartApi._chartWidget._getMouseEventParamsImpl()
+ * _series.Jn.bh === seriesAPI.Series<SeriesType>.CustomPriceLines[]
+ * _series.Jn.kh === seriesAPI.Series<SeriesType>.PrimitiveWrapperArray[]
+ * _series.Jn.kh[].ah === seriesAPI.Series<SeriesType>.PrimitiveWrapperArray[].PrimitveObj
  */  
 
-//** Key Map for Lightweight Charts MouseEvent Params: Valid only for Lightweight-Charts v5.0.7  */
+//** Key Map for Lightweight Charts MouseEvent Params: Valid only for Lightweight-Charts v5.0.8  */
 const MouseEventKeyMap: {[key:string]: keyof lwc.MouseEventParams} = {
-    dw: 'time',
+    Pw: 'time',
     Re: 'logical',
-    fw: 'point',
-    ww: 'seriesData', 
-    pw: 'paneIndex',
-    mw: 'hoveredSeries',
-    gw: 'hoveredObjectId',
-    Mw: 'sourceEvent'
+    kw: 'point',
+    yw: 'paneIndex',
+    Tw: 'hoveredSeries',
+    Rw: 'seriesData', 
+    Dw: 'hoveredObjectId',
+    Vw: 'sourceEvent'
 }
