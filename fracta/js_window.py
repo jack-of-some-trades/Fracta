@@ -173,6 +173,7 @@ class View(ABC):
         self.rtn_queue = hooks.rtn_queue
         self.js_loaded_event = hooks.js_loaded_event
         self.stop_event = hooks.stop_event
+        self.batch_cmds = True
 
         self.rolodex = {
             JS_CMD.SHOW: self.show,
@@ -227,13 +228,16 @@ class View(ABC):
 
             if cmd_str is None:
                 self.rolodex[cmd](*args)  # Given a PyWv Command, execute Immediately
-            else:
+            elif self.batch_cmds:
                 batch_size += 1
                 batch_cmd += cmd_str
+            else:
+                self.run_script(cmd_str)
 
-            # Batching is critical. Batching is atleast 3x faster than running individual cmds
-            # If not done then the queue can easily pileup too. The Batch Size Limit exists to
-            # limit how much the viewport appears to lockup while being flooded w/ cmds
+            # Batching is at least 3x faster than running individual cmds and helps prevent the
+            # queue from piling up too. The Batch Size Limit exists to limit how much the viewport
+            # appears to lockup while being flooded w/ cmds. It is disabled during debug to help
+            # isolate problematic commands
             if self.fwd_queue.empty() or batch_size >= 100:
                 self.run_script(batch_cmd)
                 batch_cmd = ""
@@ -267,11 +271,12 @@ class PyWv(View):
         # Pass Hooks and run_script to super
         super().__init__(mp_hooks, run_script=self._handle_eval_js)
 
-        if log_level is not None:
-            log.setLevel(log_level)
-        elif debug:
+        if debug:
+            self.batch_cmds = False
             log.setLevel(logging.DEBUG)
         # webview.settings["OPEN_DEVTOOLS_IN_DEBUG"] = False
+        if log_level is not None:
+            log.setLevel(log_level)
 
         # assign default js_api if it was not provided
         if api is None:
