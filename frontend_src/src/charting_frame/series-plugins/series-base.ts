@@ -4,7 +4,7 @@
  */
 import * as lwc from "lightweight-charts";
 import { ORDERABLE, Orderable, treeLeafInterface } from "../../../tsx/widget_panels/object_tree";
-import { charting_frame } from "../charting_frame";
+import { charting_frame, pane as charting_pane } from "../charting_frame";
 import { indicator } from "../indicator";
 import { RoundedCandleSeriesData, RoundedCandleSeriesImpl, RoundedCandleSeriesOptions, RoundedCandleSeriesPartialOptions } from "./rounded-candles-series/rounded-candles-series";
 
@@ -41,7 +41,7 @@ const SERIES_NAME_MAP = new Map<Series_Type, string>([
 ])
 
 
-const SERIES_TYPE_MAP = new Map<Series_Type, lwc.SeriesDefinition<lwc.SeriesType>>([
+const SERIES_TYPE_MAP = new Map<Series_Type, SeriesDefinitions>([
     [Series_Type.WhitespaceData, lwc.LineSeries],
     [Series_Type.SingleValueData, lwc.LineSeries],
     [Series_Type.LINE, lwc.LineSeries],
@@ -66,6 +66,7 @@ export type SeriesBase_T = SeriesBase<Exclude<keyof SeriesOptionsMap_EXT, 'Custo
 export type Series = lwc.ISeriesApi<keyof lwc.SeriesOptionsMap>
 // Meant to represent the 'SeriesApi' in lwc that isn't exported. (the class that implements 'ISeriesApi')
 export type SeriesApi = lwc.ISeriesApi<keyof lwc.SeriesOptionsMap>
+export type SeriesDefinitions = lwc.SeriesDefinition<keyof lwc.SeriesOptionsMap>
 
 /* --------------------- Generic Types ----------------------- */
 
@@ -159,13 +160,13 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
     
     private _create_series(series_type: Series_Type): lwc.ISeriesApi<lwc.SeriesType> {
         let _lwc_type = SERIES_TYPE_MAP.get(series_type)
-        if (_lwc_type) return this.chart.addSeries(_lwc_type, undefined, this.pane.paneIndex())
+        if (_lwc_type) return this.pane._addSeries(_lwc_type)
 
         // ---- Custom Series Types ---- //
         switch (series_type) {
             // Add Custom Series Switch statement so accommodations don't need to be made on the Python side
             case (Series_Type.ROUNDED_CANDLE):
-                return this.chart.addCustomSeries(new RoundedCandleSeriesImpl(), undefined, this.pane.paneIndex())
+                return this.pane._addCustomSeries(new RoundedCandleSeriesImpl())
         }
 
         throw TypeError(`Unknown Series Type: ${series_type}`)
@@ -175,7 +176,7 @@ export class SeriesBase<T extends Exclude<keyof SeriesOptionsMap_EXT, 'Custom'>>
     get indicator(): indicator {return this._indicator}
     get index(): number {return this._series.seriesOrder()}
     get name() : string { return this._name? this._name : SERIES_NAME_MAP.get(this.s_type) ?? ''}
-    get pane() : lwc.IPaneApi<lwc.Time> { return this._indicator.pane }
+    get pane() : charting_pane { return this._indicator.pane }
     get frame() : charting_frame { return this._indicator.frame }
     get chart() : lwc.IChartApi { return this._indicator.frame._chart }
 

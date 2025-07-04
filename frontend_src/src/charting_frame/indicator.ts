@@ -1,10 +1,9 @@
-import { IPaneApi, Time } from "lightweight-charts";
 import { Accessor, createSignal, Setter, Signal } from "solid-js";
 import { createStore, SetStoreFunction } from "solid-js/store";
 import { IndicatorOpts } from "../../tsx/charting_frame/indicator_options";
 import { ORDERABLE, ORDERABLE_SET, ReorderableSet, treeBranchInterface, treeLeafInterface } from "../../tsx/widget_panels/object_tree";
 import { OverlayCTX } from "../../tsx/window/overlay_manager";
-import { charting_frame } from "./charting_frame";
+import { charting_frame, pane } from "./charting_frame";
 import { PrimitiveBase } from "./primitive-plugins/primitive-base";
 import { primitive_set } from "./primitive-plugins/primitive-set";
 import { primitives } from "./primitive-plugins/primitives";
@@ -24,7 +23,7 @@ export class indicator implements ReorderableSet {
     _id: string
     type: string
     _name: string
-    private _pane: IPaneApi<Time>
+    private _pane: pane
     private _frame: charting_frame
 
     labelHtml: Accessor<string | undefined>
@@ -59,8 +58,7 @@ export class indicator implements ReorderableSet {
         this._id = id
         this.type = type
         this._name = display_name
-        // Auto Append Self to Pane 0 at creation
-        this._pane = frame.paneAPIs[0]
+        this._pane = frame.default_pane
         this._frame = frame
         this.outputs = outputs
 
@@ -72,7 +70,7 @@ export class indicator implements ReorderableSet {
         const labelHtml = createSignal<string | undefined>(undefined)
         this.labelHtml = labelHtml[0]; this.setLabelHtml = labelHtml[1]
 
-        // this.frame.attach_indicator_to_legend(this)
+        this.pane.attach(this)
 
         this.leafProps = {
             id:this.id,
@@ -100,10 +98,9 @@ export class indicator implements ReorderableSet {
             ser.remove()
         })
         this.primitives.forEach((prim, key) => {
-            this._frame.whitespace_series.detachPrimitive(prim)
+            this.pane._detachPrimitive(prim)
         })
-        //Remove from the pane that is currently displaying the indicator
-        // this.frame.detach_indicator_from_legend(this)
+        this.pane.detach(this)// ???
     }
 
     setVisibility(arg:boolean){
@@ -129,7 +126,7 @@ export class indicator implements ReorderableSet {
     get id(): string { return this._id }
     get index(): number { return 0 }
     get length(): number { return 0 }
-    get pane(): IPaneApi<Time> { return this._pane }
+    get pane(): pane { return this._pane }
     get frame(): charting_frame { return this._frame }
     get name(): string { return this._name ? this._name : this.type }
     get removable(): boolean { return this._id !== MAIN_TIMESERIES_ID }

@@ -7,8 +7,9 @@ import { applyOpacity, tf, ticker } from "../types";
 import { update_tab_func } from "../window/container";
 import { frame } from "../window/frame";
 import { indicator, isIndicator } from "./indicator";
+import { PrimitiveBase } from "./primitive-plugins/primitive-base";
 import { isPrimitiveSet, primitive_set } from "./primitive-plugins/primitive-set";
-import { Series_Type } from "./series-plugins/series-base";
+import { Series_Type, SeriesApi, SeriesDefinitions } from "./series-plugins/series-base";
 
 
 export interface data_src {
@@ -27,24 +28,29 @@ export class charting_frame extends frame {
     element: JSX.Element
     
     _chart: lwc.IChartApi
+    default_pane: pane
     whitespace_series: lwc.ISeriesApi<'Line'>
 
     timeframe: tf
     ticker: ticker
     series_type: Series_Type
-    pane_map = new WeakMap<lwc.IPaneApi<lwc.Time>, pane_wrapper>()
+    pane_map = new WeakMap<lwc.IPaneApi<lwc.Time>, pane>()
     attached = new Map<string, (indicator | primitive_set)>()
 
     private objTreeBranch:treeBranchInterface
 
-    panes: Accessor<pane_wrapper[]>
-    private setPanes: Setter<pane_wrapper[]>
+    panes: Accessor<pane[]>
+    private setPanes: Setter<pane[]>
 
     constructor(id: string, tab_update_func: update_tab_func) {
         super(id, tab_update_func)
         
         const [frameRuler, setFrameRulerRef] = createSignal<HTMLDivElement>(document.createElement('div'))
         this.frameRuler = frameRuler
+
+        // Need a Reactive Panes Signal to Populate the Object Tree with.
+        const sig = createSignal<pane[]>([])
+        this.panes = sig[0]; this.setPanes = sig[1]
 
         // The following 3 variables are actually properties of a frame's primary Series(Indicator) obj.
         // While these really should be owned by that Series indicator and not a frame, this is how the 
@@ -56,15 +62,14 @@ export class charting_frame extends frame {
         const OPTS = DEFAULT_CHART_OPTS()
         let tmp_div = document.createElement('div')
         this._chart = lwc.createChart(tmp_div, OPTS)
+        // Add initial Pane since AddDefaultPane == false
+        this.default_pane = this.addPane()
         this.whitespace_series = this._chart.addSeries(lwc.LineSeries)
 
-        // Need a Reactive Panes Signal to Populate the Object Tree with.
-        const sig = createSignal<pane_wrapper[]>([])
-        this.panes = sig[0]; this.setPanes = sig[1]
-        // Populate with the initial pane created with the chart
-        const _paneWrap = new pane_wrapper(this.paneAPIs[0])
-        this.setPanes([_paneWrap])
-        this.pane_map.set(this.paneAPIs[0], _paneWrap)
+        this.element = ChartFrame({
+            frame:this,
+            setRulerRef: setFrameRulerRef
+        })
 
         this.objTreeBranch = {
             id:this.id,
@@ -75,13 +80,8 @@ export class charting_frame extends frame {
             moveTo: ()=>{}
         }
 
-        console.log(this._chart)
+        console.log(this)
         console.log(this.panes())
-
-        this.element = ChartFrame({
-            frame:this,
-            setRulerRef: setFrameRulerRef
-        })
         
         // The Following listeners allow smooth chart dragging while bars are actively updating.
         this.chart_el.addEventListener('mousedown', () => {
@@ -134,9 +134,18 @@ export class charting_frame extends frame {
         )
         return renamed as lwc.MouseEventParams<lwc.Time>
     }
-    
-    getPane(index: number) : lwc.IPaneApi<lwc.Time> | undefined {return this._chart.panes()[index]}
 
+    addPane(): pane {
+        const _paneApi = this._chart.addPane()
+        const _paneWrap = new pane(this, _paneApi)
+        this.pane_map.set(_paneApi, _paneWrap)
+
+        // Must set panes onAnimationFrame since the PaneAPI Element required
+        // for rendering the <PaneOverlay/> is created in an animation cycle
+        requestAnimationFrame( () => this.setPanes([...this.panes(), _paneWrap]) )
+        return _paneWrap
+    }
+    
     //** Takes a normal MouseEvent and Returns the Lightweight-Charts Mouse Event. */
     make_event_params(e: MouseEvent): lwc.MouseEventParams<lwc.Time> {
         let index = this._chart.timeScale().coordinateToLogical(e.offsetX)
@@ -170,8 +179,19 @@ export class charting_frame extends frame {
         false
     )}
 
+    //@ts-ignore Valid only for Lightweight-Charts v5.0.8
+    fullUpdate() { this._chart.Wf.ts.Bh() }
+    //@ts-ignore Valid only for Lightweight-Charts v5.0.8
+    lightUpdate() { this._chart.Wf.ts.ar() }
+
+    updatePaneEls() { 
+        this.panes().forEach(pane => pane.updatePaneEl()) 
+        this.setPanes(this.panes().sort((a, b) => a.paneIndex - b.paneIndex))
+    }
+
     fit_content() { this._chart.timeScale().fitContent() }
     autoscale_content() { this._chart.timeScale().resetTimeScale() }
+    getPaneByIndex(index: number) : pane | undefined { return this.panes().find((p) => p.paneIndex === index) }
     update_timescale_opts(newOpts: lwc.DeepPartial<lwc.HorzScaleOptions>) { this._chart.timeScale().applyOptions(newOpts) }
 
     // #endregion
@@ -238,28 +258,11 @@ export class charting_frame extends frame {
     ) {
         let new_indicator = new indicator(_id, type, name, outputs, this)
         this.attached.set(_id, new_indicator)
-
-        // Map the indicator to the pane it attached itself too
-        let _pane_wrapper = this.pane_map.get(new_indicator.pane)
-        if (_pane_wrapper == undefined) {
-            _pane_wrapper = new pane_wrapper(new_indicator.pane)
-            this.pane_map.set(new_indicator.pane, _pane_wrapper)
-            this.setPanes([...this.panes(), _pane_wrapper])
-        }
-        _pane_wrapper.attach(new_indicator)
     }
 
     protected delete_indicator(_id: string) {
         let indicator = this.attached.get(_id)
         if (indicator === undefined || !isIndicator(indicator)) return
-
-        // Remove the indcator from the Pane <-> indicators Map
-        let _pane_wrapper = this.pane_map.get(indicator.pane)
-        if (_pane_wrapper !== undefined) {
-            _pane_wrapper.detach(indicator)
-            // Check if that removed the last of the objects from the pane and deleted it
-            if (_pane_wrapper.paneIndex == -1) this.setPanes(this.panes().filter((_pane) => _pane.paneIndex !== -1))
-        }
             
         indicator.delete()
         this.attached.delete(_id)
@@ -287,42 +290,73 @@ export class charting_frame extends frame {
  * Class to wrap around the IPaneAPI created by the chart. This class helps
  * manage the ability to order indicators/primitives within a pane.
  */
-class pane_wrapper implements ReorderableSet {
+export class pane implements ReorderableSet {
     [ORDERABLE]:true = true;
     [ORDERABLE_SET]:true = true;
 
     _pane: lwc.IPaneApi<lwc.Time>
+    _frame: charting_frame
+
+    paneEl: Accessor<HTMLTableCellElement | undefined>
+    private setPaneEl: Setter<HTMLTableCellElement | undefined>
+
     attached: Accessor<(indicator | primitive_set)[]>
     setAttached: Setter<(indicator | primitive_set)[]>
 
     leafProps: treeLeafInterface
     branchProps: treeBranchInterface
     
-    constructor(pane: lwc.IPaneApi<lwc.Time>){
+    constructor(frame: charting_frame, pane: lwc.IPaneApi<lwc.Time>){
         this._pane = pane
+        this._frame = frame
 
-        const sig = createSignal<(indicator | primitive_set)[]>([])
-        this.attached = sig[0]; this.setAttached = sig[1]
+        const sig1 = createSignal<HTMLTableCellElement>()
+        this.paneEl = sig1[0]; this.setPaneEl = sig1[1]
+        // The Pane's DOM Element is created in an animation frame so this delays
+        // setting the signal until after the element has been created.
+        this.updatePaneEl()
+
+        const sig2 = createSignal<(indicator | primitive_set)[]>([])
+        this.attached = sig2[0]; this.setAttached = sig2[1]
 
         this.leafProps = {
-            id:this.id,
-            leafTitle:this.name,
             obj: this,
-            onLeftClick: this.on_left_click,
-            onRightClick: this.on_right_click
+            id:this.id,
+            leafTitle:this.name
         }
         this.branchProps = {
             id: this.id,
             branchTitle: this.name,
             dropDownMode: 'always',
             reorderables: this.attached,
+            moveTo: this.move_to_pane.bind(this),
             reorder: this.reorder_attached.bind(this),
-            moveTo: this.move_to_pane.bind(this)
         }
     }
+
     get id():string { return String(this._pane.paneIndex()) }
     get name(): string {return 'Pane #' + String(this.id)}
+    get frame(): charting_frame { return this._frame }
     get paneIndex(): number { return this._pane.paneIndex() }
+    get paneApi(): lwc.IPaneApi<lwc.Time> { return this._pane }
+    get _paneEl(): HTMLTableCellElement | undefined {
+        if (this._pane.getHTMLElement()) return this._pane.getHTMLElement() as HTMLTableCellElement
+    }
+
+    updatePaneEl(){ requestAnimationFrame(() => this.setPaneEl(this._paneEl)) }
+
+    movePane(index: number) {
+        if (index === this.paneIndex) return
+        index = Math.max(Math.min(index, this._frame.paneAPIs.length - 1), 0)
+        this._pane.moveTo(index)
+        this.frame.updatePaneEls()
+    }
+
+    _attachPrimtive(primitive: PrimitiveBase){ this._pane.attachPrimitive(primitive) }
+    _detachPrimitive(primitive: PrimitiveBase){ this._pane.detachPrimitive(primitive) }
+    _addSeries(type: SeriesDefinitions): SeriesApi { return this._pane.addSeries(type) }
+    _addCustomSeries(impl: lwc.ICustomSeriesPaneView): SeriesApi { return this._pane.addCustomSeries(impl) }
+    _priceScale(scale: string): lwc.IPriceScaleApi { return this._pane.priceScale(scale) }
 
     indicators(): indicator[] { return this.attached().filter((obj) => isIndicator(obj))}
     primitiveSets(): primitive_set[] { return this.attached().filter((obj) => isPrimitiveSet(obj))}
@@ -341,14 +375,6 @@ class pane_wrapper implements ReorderableSet {
 
     move_to_pane(obj: indicator | primitive_set | any){
 
-    }
-
-    on_left_click(){
-        console.log('Left Clicked Pane')
-    }
-
-    on_right_click(){
-        console.log('Right Clicked Pane')
     }
 }
 
@@ -398,7 +424,8 @@ function DEFAULT_CHART_OPTS(){
             allowShiftVisibleRangeOnWhitespaceReplacement: true,
             rightBarStaysOnScroll: true,
             rightOffset: parseInt(style.getPropertyValue("--chart-right-offset")) ?? 20
-        }
+        },
+        addDefaultPane: false, // Always set to False so Pane Wrapper can create the Panes.
     }
     return OPTS
 }
@@ -422,6 +449,7 @@ function DEFAULT_CHART_OPTS(){
  * 
  * this.chart.Wf === ChartApi._chartWidget: ChartWidget
  * this.chart.Wf.ts === ChartApi._chartWidget._model: ChartModel
+ * this.chart.Wf.ts.Bh() === ChartApi._chartWidget._model.fullUpdate()
  * this.chart.Wf.ts.ar() === ChartApi._chartWidget._model.lightUpdate()
  * this.chart.Wf.ts.qu[] === ChartApi._chartWidget._model._serieses[]: Series[]
  * this.chart.Wf.ts.$u[] === ChartApi._chartWidget._model._panes[]: Pane[]
