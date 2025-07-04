@@ -276,12 +276,16 @@ export interface legend_props {
 
 function PaneLegend(props:legend_props){
     let legend_ref = document.createElement('div')
-    const [show, setShow] = createSignal<boolean>(true)
+    const [show, setShow] = createSignal<boolean>(props.pane.indicators()?.length !== 0)
 
     createEffect(on(props.style, ()=>{
         // Minimize the Indicators list if the pane is too small
         if (show() && props.pane.paneApi.getHeight() < legend_ref.offsetHeight)
             setShow(false)
+    }))
+    createEffect(on(props.pane.attached, () => {
+        // Hide the Menu if there's no longer any indicators on it.
+        if (show() && props.pane.indicators()?.length === 0) setShow(false)
     }))
 
     return <div class="pane_legend" ref={legend_ref} style={props.style()}>
@@ -294,7 +298,7 @@ function PaneLegend(props:legend_props){
         <div class="legend_toggle_btn" onClick={(e) => {if(e.button === 0) setShow(!show())}}>
             <Icon 
                 classList={{icon:false, icon_no_hover:true}} 
-                icon={show()? icons.menu_arrow_sn : icons.menu_arrow_ns} 
+                icon={show()? icons.menu_arrow_sn : icons.menu_ext_small}
                 force_reload={true}
             />
         </div>  
